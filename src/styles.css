@@ -427,3 +427,245 @@
   background: rgba(26, 79, 214, 0.18);
   color: #0d1b3e;
 }
+
+/* ═══════════════════════════════════════════════
+   PAGE TRANSITIONS — igloo.inc fullpage style
+════════════════════════════════════════════════ */
+
+/* ── Fullpage container ── */
+.fullpage-wrapper {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  will-change: transform;
+}
+
+/* ── Each page is fullscreen ── */
+.fullpage-slide {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+}
+
+/* ══════════════════════════════════════════════
+   IGLOO-STYLE KEYFRAMES
+   Scroll ↓  → old page exits UP,   new page enters from BELOW
+   Scroll ↑  → old page exits DOWN, new page enters from ABOVE
+══════════════════════════════════════════════ */
+
+/* New page enters from bottom (user scrolled DOWN → next page) */
+@keyframes iglooEnterFromBottom {
+  0%   { transform: translateY(100%) scale(0.96); opacity: 0; filter: blur(6px); }
+  100% { transform: translateY(0%)   scale(1);    opacity: 1; filter: blur(0px); }
+}
+
+/* New page enters from top (user scrolled UP → prev page) */
+@keyframes iglooEnterFromTop {
+  0%   { transform: translateY(-100%) scale(0.96); opacity: 0; filter: blur(6px); }
+  100% { transform: translateY(0%)    scale(1);    opacity: 1; filter: blur(0px); }
+}
+
+/* Old page exits to top (user scrolled DOWN) */
+@keyframes iglooExitToTop {
+  0%   { transform: translateY(0%)    scale(1);    opacity: 1; filter: blur(0px); }
+  100% { transform: translateY(-100%) scale(0.96); opacity: 0; filter: blur(6px); }
+}
+
+/* Old page exits to bottom (user scrolled UP) */
+@keyframes iglooExitToBottom {
+  0%   { transform: translateY(0%)   scale(1);    opacity: 1; filter: blur(0px); }
+  100% { transform: translateY(100%) scale(0.96); opacity: 0; filter: blur(6px); }
+}
+
+.page-transition-enter {
+  animation-duration: 0.62s;
+  animation-timing-function: cubic-bezier(0.77, 0, 0.18, 1);
+  animation-fill-mode: both;
+  will-change: transform, opacity, filter;
+}
+
+.page-enter-from-bottom {
+  animation-name: iglooEnterFromBottom;
+}
+
+.page-enter-from-top {
+  animation-name: iglooEnterFromTop;
+}
+
+.page-exit-to-top {
+  animation-name: iglooExitToTop;
+  animation-duration: 0.62s;
+  animation-timing-function: cubic-bezier(0.77, 0, 0.18, 1);
+  animation-fill-mode: both;
+  pointer-events: none;
+}
+
+.page-exit-to-bottom {
+  animation-name: iglooExitToBottom;
+  animation-duration: 0.62s;
+  animation-timing-function: cubic-bezier(0.77, 0, 0.18, 1);
+  animation-fill-mode: both;
+  pointer-events: none;
+}
+
+/* ── Page progress bar (top strip) ── */
+@keyframes pageProgressBar {
+  from { transform: scaleX(0); opacity: 0; }
+  10%  { opacity: 1; }
+  to   { transform: scaleX(1); opacity: 1; }
+}
+
+.page-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #1a4fd6 0%, #6366f1 50%, #10b981 100%);
+  transform-origin: left;
+  z-index: 9999;
+  animation: pageProgressBar 0.62s cubic-bezier(0.77, 0, 0.18, 1) both;
+  box-shadow: 0 0 12px rgba(26,79,214,0.5);
+}
+
+/* ── Overlay swipe effect ── */
+@keyframes iglooOverlayIn {
+  0%   { opacity: 0; }
+  30%  { opacity: 0.18; }
+  100% { opacity: 0; }
+}
+
+.page-overlay-swipe {
+  position: fixed;
+  inset: 0;
+  background: linear-gradient(135deg, rgba(26,79,214,0.12), rgba(99,102,241,0.08));
+  z-index: 9998;
+  pointer-events: none;
+  animation: iglooOverlayIn 0.62s cubic-bezier(0.77, 0, 0.18, 1) both;
+}
+
+/* ── Pagination dots (right side, igloo style) ── */
+.igloo-dots {
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.igloo-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgba(26, 79, 214, 0.2);
+  border: 1.5px solid rgba(26, 79, 214, 0.3);
+  cursor: pointer;
+  transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+  position: relative;
+}
+
+.igloo-dot:hover {
+  background: rgba(26, 79, 214, 0.45);
+  transform: scale(1.2);
+}
+
+.igloo-dot-active {
+  width: 8px;
+  height: 30px;
+  border-radius: 100px;
+  background: linear-gradient(180deg, #1a4fd6 0%, #6366f1 100%);
+  border-color: transparent;
+  box-shadow: 0 2px 12px rgba(26,79,214,0.45);
+  transform: none;
+}
+
+/* ── Scroll hint animation (igloo style bounce arrow) ── */
+@keyframes iglooScrollHint {
+  0%, 100% { transform: translateY(0);   opacity: 0.6; }
+  50%       { transform: translateY(6px); opacity: 1;   }
+}
+
+.igloo-scroll-hint {
+  animation: iglooScrollHint 1.8s ease-in-out infinite;
+}
+
+/* ── Nav arrow buttons (igloo floating style) ── */
+.igloo-nav-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1.5px solid rgba(255,255,255,0.55);
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08), 0 1px 4px rgba(0,0,0,0.04);
+  cursor: pointer;
+  transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+  color: #0d1b3e;
+}
+
+.igloo-nav-btn:hover:not(:disabled) {
+  border-color: rgba(26,79,214,0.35);
+  color: #1a4fd6;
+  transform: scale(1.12);
+  box-shadow: 0 6px 24px rgba(26,79,214,0.2), 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.igloo-nav-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.igloo-nav-btn:disabled {
+  opacity: 0.22;
+  cursor: not-allowed;
+}
+
+/* ── Scroll toggle button (igloo brand style) ── */
+.scroll-toggle-on {
+  background: linear-gradient(135deg, #1a4fd6 0%, #3b5ff0 100%) !important;
+  color: #fff !important;
+  border-color: transparent !important;
+  box-shadow: 0 4px 16px rgba(26,79,214,0.35), 0 1px 4px rgba(0,0,0,0.06) !important;
+}
+
+.scroll-toggle-on:hover {
+  transform: scale(1.06);
+  box-shadow: 0 6px 24px rgba(26,79,214,0.45), 0 2px 8px rgba(0,0,0,0.08) !important;
+}
+
+/* ── Page name label next to dots ── */
+.igloo-dot-label {
+  position: absolute;
+  right: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 600;
+  color: #1a4fd6;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(8px);
+  padding: 3px 8px;
+  border-radius: 20px;
+  border: 1px solid rgba(26,79,214,0.15);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.igloo-dot:hover .igloo-dot-label {
+  opacity: 1;
+  transform: translateY(-50%) translateX(-4px);
+}
+
+
