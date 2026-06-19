@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useState, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { ThreeDCanvas } from "@/components/ThreeDCanvas";
 import { toast } from "sonner";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -276,7 +277,7 @@ function EngenhariaPage() {
             <Box className="mr-2 h-4 w-4" /> Criar em 3D
           </Button>
           {isMaster && (
-            <Button onClick={() => setIsProjModalOpen(true)} className="glass border-white/20 hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+            <Button onClick={() => setIsProjModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
               <Plus className="mr-2 h-4 w-4" /> Registrar Projeto
             </Button>
           )}
@@ -364,15 +365,24 @@ function EngenhariaPage() {
                 const currentStatus = STATUS_OPTIONS.find((s) => s.id === proj.status) || STATUS_OPTIONS[0];
                 const currentPcp = PCP_STATUS_OPTIONS.find((s) => s.id === proj.pcp_status) || PCP_STATUS_OPTIONS[0];
                 return (
-                  <Card key={proj.id} className="glass border-white/40 relative group hover:border-blue-400/80 transition-all">
-                    <CardHeader className="pb-3">
+                  <Card key={proj.id} className={`glass border-white/40 relative group hover:border-blue-400/80 transition-all duration-300 card-hover-effect overflow-hidden border-l-4 ${
+                    proj.status === 'concluido' ? 'border-l-emerald-500' :
+                    proj.status === 'suspenso' ? 'border-l-rose-500' :
+                    proj.status === 'producao' ? 'border-l-purple-500' :
+                    proj.status === 'aprovacao' ? 'border-l-amber-500' : 'border-l-blue-500'
+                  }`}>
+                    <CardHeader className="pb-3 pt-4">
                       <div className="flex justify-between items-start">
                         <div>
-                          <span className="text-[10px] font-bold text-slate-400 block">{proj.code || "SEM CÓDIGO"}</span>
-                          <CardTitle className="text-base font-bold text-slate-800">{proj.name}</CardTitle>
-                          <CardDescription className="text-xs">{proj.client}</CardDescription>
+                          <span className="text-[10px] font-bold text-slate-400 block tracking-wider uppercase">{proj.code || "SEM CÓDIGO"}</span>
+                          <CardTitle className="text-base font-black text-slate-800 flex items-center gap-1.5 mt-0.5">
+                            <Layers className="h-4 w-4 text-blue-500" /> {proj.name}
+                          </CardTitle>
+                          <CardDescription className="text-xs font-semibold text-slate-500 flex items-center gap-1 mt-0.5">
+                            Cliente: <span className="text-slate-700">{proj.client}</span>
+                          </CardDescription>
                         </div>
-                        <Badge className={currentStatus.color}>{currentStatus.label}</Badge>
+                        <Badge className={`${currentStatus.color} shadow-xs font-bold text-[10px]`}>{currentStatus.label}</Badge>
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
@@ -390,18 +400,28 @@ function EngenhariaPage() {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-2 gap-4 text-xs">
-                        <div>
-                          <span className="text-muted-foreground block">Entrega Estimada</span>
-                          <span className="font-semibold text-slate-700">
-                            {proj.delivery_date ? new Date(proj.delivery_date).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}
-                          </span>
+                      <div className="grid grid-cols-2 gap-4 text-xs pt-1">
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-slate-100 rounded-lg text-slate-500">
+                            <Calendar className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">Entrega Estimada</span>
+                            <span className="font-bold text-slate-700">
+                              {proj.delivery_date ? new Date(proj.delivery_date).toLocaleDateString("pt-BR", { timeZone: "UTC" }) : "—"}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <span className="text-muted-foreground block">Status PCP</span>
-                          <span className={`inline-block px-2 py-0.5 rounded text-[10px] font-semibold mt-0.5 ${currentPcp.color}`}>
-                            {currentPcp.label}
-                          </span>
+                        <div className="flex items-center gap-2">
+                          <div className="p-1.5 bg-slate-100 rounded-lg text-slate-500">
+                            <Clock className="h-4 w-4" />
+                          </div>
+                          <div>
+                            <span className="text-[10px] text-muted-foreground block font-bold uppercase tracking-wider">Status PCP</span>
+                            <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold mt-0.5 ${currentPcp.color}`}>
+                              {currentPcp.label}
+                            </span>
+                          </div>
                         </div>
                       </div>
 
@@ -640,22 +660,10 @@ function EngenhariaPage() {
           <Card className="glass border-white/40 p-6">
             <CardHeader className="px-0 pt-0">
               <CardTitle className="text-base font-bold text-slate-800">Visualizador e Modelador 3D Interativo</CardTitle>
-              <CardDescription className="text-xs">Projeto de modelagem 3D carregado a partir do Sketchfab.</CardDescription>
+              <CardDescription className="text-xs">Crie e monte projetos em 3D do zero ou carregue arquivos .glb/.gltf locais.</CardDescription>
             </CardHeader>
-            <CardContent className="flex justify-center p-0">
-              <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", background: "#e8e8e8", borderRadius: "8px", overflow: "hidden", maxWidth: "800px", margin: "0 auto" }}>
-                <iframe
-                  title="teste"
-                  style={{ width: "100%", height: "100%", border: "none", display: "block" }}
-                  src="https://sketchfab.com/models/5f14d7fce9804e30aef5c7e291e6f4e5/embed?camera=0&ui_hint=0&ui_controls=0&ui_infos=0&ui_stop=0&ui_watermark=0&ui_watermark_link=0&ui_ar=0&ui_help=0&ui_settings=0&ui_vr=0&ui_fullscreen=0&ui_annotations=0&autostart=1&dnt=1"
-                  sandbox="allow-scripts allow-same-origin"
-                ></iframe>
-                {/* Overlay apenas nas bordas para bloquear os botões, sem cobrir o centro */}
-                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50px", zIndex: 5, pointerEvents: "all" }}></div>
-                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50px", zIndex: 5, pointerEvents: "all" }}></div>
-                <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "50px", zIndex: 5, pointerEvents: "all" }}></div>
-                <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: "50px", zIndex: 5, pointerEvents: "all" }}></div>
-              </div>
+            <CardContent className="pt-2">
+              <ThreeDCanvas />
             </CardContent>
           </Card>
         </TabsContent>

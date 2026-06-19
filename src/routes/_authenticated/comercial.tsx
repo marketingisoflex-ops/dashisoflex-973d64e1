@@ -337,7 +337,7 @@ function ComercialPage() {
               <Button variant="outline" onClick={() => setIsSaleswomanModalOpen(true)} className="glass border-slate-300 hover:scale-[1.02] transition-all text-slate-700 bg-white">
                 <UserPlus className="mr-2 h-4 w-4" /> Nova Vendedora
               </Button>
-              <Button onClick={() => setIsOppModalOpen(true)} className="glass border-white/20 hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+              <Button onClick={() => setIsOppModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
                 <Plus className="mr-2 h-4 w-4" /> Nova Oportunidade
               </Button>
             </>

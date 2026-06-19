@@ -289,7 +289,7 @@ function MercadoLivrePage() {
         </div>
 
         {isMaster && (
-          <Button onClick={() => setIsAddModalOpen(true)} className="glass border-white/20 hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+          <Button onClick={() => setIsAddModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
             <Plus className="mr-2 h-4 w-4" /> Registrar Dia
           </Button>
         )}

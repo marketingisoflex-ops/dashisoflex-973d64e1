@@ -207,11 +207,11 @@ function SacComprasPage() {
 
         <div className="flex flex-wrap gap-2">
           {activeTab === "sac" ? (
-            <Button onClick={() => setIsSacModalOpen(true)} className="glass border-white/20 hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+            <Button onClick={() => setIsSacModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
               <Plus className="mr-2 h-4 w-4" /> Novo Ticket SAC
             </Button>
           ) : (
-            <Button onClick={() => setIsPurchaseModalOpen(true)} className="glass border-white/20 hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+            <Button onClick={() => setIsPurchaseModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
               <Plus className="mr-2 h-4 w-4" /> Nova Solicitação de Compra
             </Button>
           )}
