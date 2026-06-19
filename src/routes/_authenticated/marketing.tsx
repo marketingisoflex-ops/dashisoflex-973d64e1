@@ -57,6 +57,7 @@ import {
   Loader2,
   Trash2,
   Lock,
+  Construction,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -74,6 +75,32 @@ import {
   Area,
 } from "recharts";
 import { fmtBRL, fmtPct } from "@/lib/calc";
+
+export function makePlaceholder(title: string, description: string) {
+  return function Page() {
+    return (
+      <div className="space-y-6">
+        <div>
+          <h1 className="text-2xl font-bold">{title}</h1>
+          <p className="text-sm text-muted-foreground">{description}</p>
+        </div>
+        <Card className="glass border-white/40">
+          <CardContent className="py-16 text-center">
+            <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+              <Construction className="h-7 w-7" />
+            </div>
+            <p className="text-base font-semibold">Módulo em construção</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Este módulo já está listado no menu e protegido por permissões.
+              <br />
+              Solicite a implementação do conteúdo quando desejar.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  };
+}
 
 export const Route = createFileRoute("/_authenticated/marketing")({
   component: MarketingPage,
