@@ -33,7 +33,6 @@ import {
   XAxis,
   YAxis,
   Tooltip,
-  Legend,
   CartesianGrid,
 } from "recharts";
 import {
@@ -51,9 +50,6 @@ import {
   Activity,
   Trash2,
   Box,
-  RotateCcw,
-  Maximize2,
-  Trash,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/engenharia")({
@@ -76,28 +72,6 @@ const PCP_STATUS_OPTIONS = [
   { id: "concluido", label: "Concluído", color: "bg-emerald-100 text-emerald-700" },
 ];
 
-// Predefined colors for the 3D model builder cubes/modules
-const PALETTE_COLORS = [
-  { hex: "#ef4444", label: "Vermelho" },
-  { hex: "#3b82f6", label: "Azul" },
-  { hex: "#10b981", label: "Verde" },
-  { hex: "#f59e0b", label: "Amarelo" },
-  { hex: "#8b5cf6", label: "Roxo" },
-  { hex: "#f97316", label: "Laranja" },
-  { hex: "#64748b", label: "Cinza Metálico" },
-  { hex: "#000000", label: "Preto" },
-  { hex: "#ffffff", label: "Branco" },
-];
-
-interface ThreeDBlock {
-  id: string;
-  x: number;
-  y: number;
-  z: number;
-  color: string;
-  type: "painel" | "perfil" | "suporte" | "porta_folha" | "display";
-}
-
 function EngenhariaPage() {
   const { data: me } = useMe();
   const isMaster = me?.roles.includes("admin_master") ?? false;
@@ -105,14 +79,6 @@ function EngenhariaPage() {
 
   const [activeTab, setActiveTab] = useState("projects");
   const [isProjModalOpen, setIsProjModalOpen] = useState(false);
-
-  // 3D Canvas Editor States
-  const [selectedColor, setSelectedColor] = useState("#3b82f6");
-  const [selectedTool, setSelectedTool] = useState<"painel" | "perfil" | "suporte" | "porta_folha" | "display">("painel");
-  const [blocks, setBlocks] = useState<ThreeDBlock[]>([]);
-  const [cameraRot, setCameraRot] = useState({ pitch: 25, yaw: 45 });
-  const [isDragging, setIsDragging] = useState(false);
-  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   // Form State - Project
   const [projForm, setProjForm] = useState({
@@ -141,9 +107,7 @@ function EngenhariaPage() {
       } catch (err) {
         console.warn("Supabase query for engenharia_projects failed, using localStorage fallback:", err);
         const stored = localStorage.getItem("eng_projects_fallback");
-        if (stored) return JSON.parse(stored);
-        localStorage.setItem("eng_projects_fallback", JSON.stringify([]));
-        return [];
+        return stored ? JSON.parse(stored) : [];
       }
     },
   });
@@ -291,71 +255,6 @@ function EngenhariaPage() {
     }));
   }, [projects]);
 
-  // ── 3D Interactive grid mechanics ──
-  const handleGridClick = (gridX: number, gridZ: number) => {
-    // Find the height (Y) to stack on
-    const existingAtSpot = blocks.filter((b) => b.x === gridX && b.z === gridZ);
-    let targetY = 0;
-    if (existingAtSpot.length > 0) {
-      targetY = Math.max(...existingAtSpot.map((b) => b.y)) + 1;
-    }
-
-    if (targetY > 6) {
-      toast.error("Limite de altura máxima empilhável atingido!");
-      return;
-    }
-
-    const newBlock: ThreeDBlock = {
-      id: `b_${Date.now()}_${Math.random()}`,
-      x: gridX,
-      y: targetY,
-      z: gridZ,
-      color: selectedColor,
-      type: selectedTool,
-    };
-
-    setBlocks([...blocks, newBlock]);
-  };
-
-  const removeTopBlock = (gridX: number, gridZ: number) => {
-    const atSpot = blocks.filter((b) => b.x === gridX && b.z === gridZ);
-    if (atSpot.length === 0) return;
-    const highestY = Math.max(...atSpot.map((b) => b.y));
-    setBlocks(blocks.filter((b) => !(b.x === gridX && b.z === gridZ && b.y === highestY)));
-  };
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    setIsDragging(true);
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDragging) return;
-    const dx = e.clientX - dragStart.x;
-    const dy = e.clientY - dragStart.y;
-    setCameraRot((prev) => ({
-      pitch: Math.min(80, Math.max(10, prev.pitch - dy * 0.5)),
-      yaw: prev.yaw + dx * 0.5,
-    }));
-    setDragStart({ x: e.clientX, y: e.clientY });
-  };
-
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Isometric projections calculations
-  const projectedGrid = useMemo(() => {
-    const size = 7;
-    const cells = [];
-    for (let x = -3; x <= 3; x++) {
-      for (let z = -3; z <= 3; z++) {
-        cells.push({ x, z });
-      }
-    }
-    return cells;
-  }, []);
-
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -449,7 +348,7 @@ function EngenhariaPage() {
           <TabsTrigger value="projects">Painel de Projetos</TabsTrigger>
           <TabsTrigger value="drawings">Desenhos Técnicos</TabsTrigger>
           <TabsTrigger value="pcp">PCP (Produção)</TabsTrigger>
-          <TabsTrigger value="builder3d">Protótipo 3D Inteligente</TabsTrigger>
+          <TabsTrigger value="builder3d">Visualizador 3D</TabsTrigger>
         </TabsList>
 
         <TabsContent value="projects" className="space-y-6 mt-4">
@@ -738,211 +637,27 @@ function EngenhariaPage() {
         </TabsContent>
 
         <TabsContent value="builder3d" className="space-y-6 mt-4">
-          <div className="grid gap-6 lg:grid-cols-4">
-            {/* Control Sidebar Panel */}
-            <Card className="glass border-white/40 flex flex-col gap-4 p-5 lg:col-span-1">
-              <div>
-                <h3 className="font-bold text-slate-800 text-sm">Estruturador 3D</h3>
-                <p className="text-[10px] text-muted-foreground">Clique nas células do grid para adicionar blocos de montagem Isoflex.</p>
+          <Card className="glass border-white/40 p-6">
+            <CardHeader className="px-0 pt-0">
+              <CardTitle className="text-base font-bold text-slate-800">Visualizador e Modelador 3D Interativo</CardTitle>
+              <CardDescription className="text-xs">Projeto de modelagem 3D carregado a partir do Sketchfab.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex justify-center p-0">
+              <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", background: "#e8e8e8", borderRadius: "8px", overflow: "hidden", maxWidth: "800px", margin: "0 auto" }}>
+                <iframe
+                  title="teste"
+                  style={{ width: "100%", height: "100%", border: "none", display: "block" }}
+                  src="https://sketchfab.com/models/5f14d7fce9804e30aef5c7e291e6f4e5/embed?camera=0&ui_hint=0&ui_controls=0&ui_infos=0&ui_stop=0&ui_watermark=0&ui_watermark_link=0&ui_ar=0&ui_help=0&ui_settings=0&ui_vr=0&ui_fullscreen=0&ui_annotations=0&autostart=1&dnt=1"
+                  sandbox="allow-scripts allow-same-origin"
+                ></iframe>
+                {/* Overlay apenas nas bordas para bloquear os botões, sem cobrir o centro */}
+                <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: "50px", zIndex: 5, pointerEvents: "all" }}></div>
+                <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, height: "50px", zIndex: 5, pointerEvents: "all" }}></div>
+                <div style={{ position: "absolute", top: 0, left: 0, bottom: 0, width: "50px", zIndex: 5, pointerEvents: "all" }}></div>
+                <div style={{ position: "absolute", top: 0, right: 0, bottom: 0, width: "50px", zIndex: 5, pointerEvents: "all" }}></div>
               </div>
-
-              {/* Tool Selection */}
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold text-slate-600">Componente</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  {(["painel", "perfil", "suporte", "porta_folha", "display"] as const).map((t) => (
-                    <Button
-                      key={t}
-                      size="sm"
-                      variant={selectedTool === t ? "default" : "outline"}
-                      onClick={() => setSelectedTool(t)}
-                      className="text-[10px] p-2 capitalize"
-                    >
-                      {t.replace("_", " ")}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Color Palette */}
-              <div className="space-y-2">
-                <Label className="text-xs font-semibold text-slate-600">Cor do Acabamento</Label>
-                <div className="grid grid-cols-5 gap-1.5">
-                  {PALETTE_COLORS.map((col) => (
-                    <button
-                      key={col.hex}
-                      onClick={() => setSelectedColor(col.hex)}
-                      className={`h-7 w-7 rounded-lg border-2 transition-all ${
-                        selectedColor === col.hex ? "border-indigo-600 scale-110 shadow-md" : "border-slate-200"
-                      }`}
-                      style={{ backgroundColor: col.hex }}
-                      title={col.label}
-                    />
-                  ))}
-                </div>
-              </div>
-
-              {/* Utility actions */}
-              <div className="space-y-2 mt-auto pt-4 border-t border-slate-200/60">
-                <Button
-                  onClick={() => setBlocks([])}
-                  variant="destructive"
-                  className="w-full text-xs flex items-center justify-center gap-1.5"
-                >
-                  <Trash className="h-4.5 w-4.5" /> Limpar Modelo
-                </Button>
-                <Button
-                  onClick={() => setCameraRot({ pitch: 25, yaw: 45 })}
-                  variant="outline"
-                  className="w-full text-xs flex items-center justify-center gap-1.5"
-                >
-                  <RotateCcw className="h-4 w-4" /> Resetar Câmera
-                </Button>
-              </div>
-            </Card>
-
-            {/* Interactive isometric Canvas */}
-            <Card
-              className="lg:col-span-3 h-[500px] bg-slate-900 border-0 shadow-2xl relative overflow-hidden flex items-center justify-center cursor-grab active:cursor-grabbing select-none"
-              onMouseDown={handleMouseDown}
-              onMouseMove={handleMouseMove}
-              onMouseUp={handleMouseUp}
-              onMouseLeave={handleMouseUp}
-            >
-              {/* Floating Camera indicators */}
-              <div className="absolute top-4 left-4 text-[10px] text-white/50 space-y-0.5 pointer-events-none font-mono">
-                <div>Yaw (Rotação H): {Math.round(cameraRot.yaw)}°</div>
-                <div>Pitch (Inclinação V): {Math.round(cameraRot.pitch)}°</div>
-                <div>Blocos criados: {blocks.length}</div>
-              </div>
-
-              <div className="absolute top-4 right-4 flex gap-2">
-                <Badge className="bg-slate-800 text-white/90 border-slate-700 font-mono text-[10px]">
-                  Isometric Projection
-                </Badge>
-              </div>
-
-              {/* Instructions Banner */}
-              <div className="absolute bottom-4 left-4 right-4 pointer-events-none text-center">
-                <span className="inline-block bg-slate-950/70 border border-white/10 px-3 py-1 rounded-full text-[10px] text-slate-300">
-                  🖱️ Arraste na área escura para rotacionar a câmera • Clique no grid para construir • Botão Direito/Shift+Clique para remover o topo
-                </span>
-              </div>
-
-              {/* 3D Representation viewport */}
-              <div
-                className="relative origin-center transition-transform duration-75"
-                style={{
-                  transform: `scale(1.2)`,
-                }}
-              >
-                {/* 3D Grid cells */}
-                <div className="relative w-0 h-0">
-                  {projectedGrid.map(({ x, z }) => {
-                    // Isometric coordinate mapping
-                    // Convert cameraRot yaw/pitch to rotation factors
-                    const radYaw = (cameraRot.yaw * Math.PI) / 180;
-                    const radPitch = (cameraRot.pitch * Math.PI) / 180;
-
-                    // Rotated local coordinates
-                    const rotX = x * Math.cos(radYaw) - z * Math.sin(radYaw);
-                    const rotZ = x * Math.sin(radYaw) + z * Math.cos(radYaw);
-
-                    // Perspective/isometric compression
-                    const screenX = rotX * 36;
-                    const screenY = rotZ * 36 * Math.sin(radPitch);
-
-                    const zIndex = Math.round((x + 4) * 10 + (z + 4));
-
-                    return (
-                      <div
-                        key={`cell_${x}_${z}`}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          if (e.shiftKey || e.button === 2) {
-                            removeTopBlock(x, z);
-                          } else {
-                            handleGridClick(x, z);
-                          }
-                        }}
-                        onContextMenu={(e) => {
-                          e.preventDefault();
-                          removeTopBlock(x, z);
-                        }}
-                        className="absolute w-8 h-8 -ml-4 -mt-4 border border-white/5 hover:bg-white/10 transition-colors flex items-center justify-center rounded-sm bg-white/2 hover:scale-[1.05]"
-                        style={{
-                          transform: `translate(${screenX}px, ${screenY}px) skewX(-20deg) rotate(-15deg)`,
-                          zIndex: zIndex,
-                        }}
-                      />
-                    );
-                  })}
-
-                  {/* Rendered Cubes/Structures */}
-                  {blocks.map((block) => {
-                    const radYaw = (cameraRot.yaw * Math.PI) / 180;
-                    const radPitch = (cameraRot.pitch * Math.PI) / 180;
-
-                    const rotX = block.x * Math.cos(radYaw) - block.z * Math.sin(radYaw);
-                    const rotZ = block.x * Math.sin(radYaw) + block.z * Math.cos(radYaw);
-
-                    const screenX = rotX * 36;
-                    // subtract Y height to stack vertically on screen
-                    const screenY = rotZ * 36 * Math.sin(radPitch) - block.y * 22;
-
-                    // Compute dynamic layered zIndex based on depth (z+x) and height (y)
-                    const zIndex = Math.round((block.x + 5) * 10 + (block.z + 5) + block.y * 100);
-
-                    return (
-                      <div
-                        key={block.id}
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeTopBlock(block.x, block.z);
-                        }}
-                        className="absolute w-8 h-8 -ml-4 -mt-4 transition-all"
-                        style={{
-                          transform: `translate(${screenX}px, ${screenY}px)`,
-                          zIndex: zIndex,
-                        }}
-                      >
-                        {/* 3D Cube faces emulation */}
-                        <div className="absolute inset-0 relative w-8 h-8">
-                          {/* Top Face */}
-                          <div
-                            className="absolute inset-0 w-8 h-8 filter brightness-110"
-                            style={{
-                              backgroundColor: block.color,
-                              transform: `translateY(-11px) rotateX(60deg) rotateZ(45deg) scale(0.707)`,
-                              border: "1px solid rgba(0,0,0,0.15)",
-                            }}
-                          />
-                          {/* Left Face */}
-                          <div
-                            className="absolute inset-0 w-8 h-5 filter brightness-75 origin-top-left"
-                            style={{
-                              backgroundColor: block.color,
-                              transform: `rotateY(-45deg) skewY(30deg) scaleX(0.707) translateY(8px) translateX(-2px)`,
-                              border: "1px solid rgba(0,0,0,0.15)",
-                            }}
-                          />
-                          {/* Right Face */}
-                          <div
-                            className="absolute inset-0 w-8 h-5 filter brightness-90 origin-top-right"
-                            style={{
-                              backgroundColor: block.color,
-                              transform: `rotateY(45deg) skewY(-30deg) scaleX(0.707) translateY(8px) translateX(2px)`,
-                              border: "1px solid rgba(0,0,0,0.15)",
-                            }}
-                          />
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </Card>
-          </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

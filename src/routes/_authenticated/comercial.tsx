@@ -46,15 +46,11 @@ import {
   Users,
   MapPin,
   TrendingUp,
-  DollarSign,
   UserPlus,
-  Edit2,
   Trash2,
   FolderKanban,
   CheckCircle,
-  HelpCircle,
   Clock,
-  CheckSquare,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/comercial")({
@@ -68,22 +64,6 @@ const KANBAN_STAGES = [
   { id: "negociacao", label: "Negociação", color: "bg-indigo-100 text-indigo-800 border-indigo-200" },
   { id: "ganho", label: "Ganho", color: "bg-emerald-100 text-emerald-800 border-emerald-200" },
   { id: "perdido", label: "Perdido", color: "bg-rose-100 text-rose-800 border-rose-200" },
-];
-
-const INITIAL_SALESWOMEN = [
-  { id: "v1", name: "Patrícia Souza", region: "Sul", email: "patricia@isoflex.com.br", phone: "(41) 99999-1111", active: true },
-  { id: "v2", name: "Mariana Costa", region: "Sudeste", email: "mariana@isoflex.com.br", phone: "(11) 98888-2222", active: true },
-  { id: "v3", name: "Juliana Rocha", region: "Centro-Oeste", email: "juliana@isoflex.com.br", phone: "(61) 97777-3333", active: true },
-  { id: "v4", name: "Camila Fernandes", region: "Nordeste & Norte", email: "camila@isoflex.com.br", phone: "(81) 96666-4444", active: true },
-];
-
-const INITIAL_OPPORTUNITIES = [
-  { id: "o1", client_name: "Metalúrgica Gerdau", saleswoman_id: "v2", value: 45000.00, stage: "proposta", ref_date: "2026-06-10", notes: "Aguardando aprovação do financeiro deles" },
-  { id: "o2", client_name: "Indústria Klabin", saleswoman_id: "v1", value: 78000.00, stage: "negociacao", ref_date: "2026-06-12", notes: "Alinhando descontos para pagamento à vista" },
-  { id: "o3", client_name: "Logística DHL", saleswoman_id: "v2", value: 12500.00, stage: "contato", ref_date: "2026-06-15", notes: "Primeiro contato feito via e-mail corporativo" },
-  { id: "o4", client_name: "Supermercados Muffato", saleswoman_id: "v1", value: 34000.00, stage: "reuniao", ref_date: "2026-06-14", notes: "Apresentação dos quadros de gestão Isoflex agendada" },
-  { id: "o5", client_name: "Móveis Todeschini", saleswoman_id: "v3", value: 95000.00, stage: "ganho", ref_date: "2026-06-16", notes: "Contrato assinado, enviando para PCP de engenharia" },
-  { id: "o6", client_name: "Autopeças Bosch", saleswoman_id: "v4", value: 28000.00, stage: "perdido", ref_date: "2026-06-08", notes: "Perdemos por prazo de entrega curto" },
 ];
 
 function ComercialPage() {
@@ -126,9 +106,7 @@ function ComercialPage() {
       } catch (err) {
         console.warn("Supabase query for comercial_saleswomen failed, using localStorage fallback:", err);
         const stored = localStorage.getItem("com_saleswomen_fallback");
-        if (stored) return JSON.parse(stored);
-        localStorage.setItem("com_saleswomen_fallback", JSON.stringify(INITIAL_SALESWOMEN));
-        return INITIAL_SALESWOMEN;
+        return stored ? JSON.parse(stored) : [];
       }
     },
   });
@@ -147,9 +125,7 @@ function ComercialPage() {
       } catch (err) {
         console.warn("Supabase query for comercial_opportunities failed, using localStorage fallback:", err);
         const stored = localStorage.getItem("com_opportunities_fallback");
-        if (stored) return JSON.parse(stored);
-        localStorage.setItem("com_opportunities_fallback", JSON.stringify(INITIAL_OPPORTUNITIES));
-        return INITIAL_OPPORTUNITIES;
+        return stored ? JSON.parse(stored) : [];
       }
     },
   });
@@ -175,7 +151,7 @@ function ComercialPage() {
       } catch (err) {
         console.warn("Fallback to localStorage for addOpportunity:", err);
         const stored = localStorage.getItem("com_opportunities_fallback");
-        const list = stored ? JSON.parse(stored) : [...INITIAL_OPPORTUNITIES];
+        const list = stored ? JSON.parse(stored) : [];
         list.push({
           id: `o_${Date.now()}`,
           client_name: payload.client_name,
@@ -217,7 +193,7 @@ function ComercialPage() {
       } catch (err) {
         console.warn("Fallback to localStorage for addSaleswoman:", err);
         const stored = localStorage.getItem("com_saleswomen_fallback");
-        const list = stored ? JSON.parse(stored) : [...INITIAL_SALESWOMEN];
+        const list = stored ? JSON.parse(stored) : [];
         list.push({
           id: `v_${Date.now()}`,
           name: payload.name,
@@ -489,21 +465,29 @@ function ComercialPage() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {saleswomen.map((row: any) => (
-                    <TableRow key={row.id}>
-                      <TableCell className="font-semibold text-xs text-slate-800">{row.name}</TableCell>
-                      <TableCell className="text-xs">
-                        <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50/50">
-                          <MapPin className="h-3 w-3 mr-1 inline" /> {row.region}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{row.email || "—"}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground">{row.phone || "—"}</TableCell>
-                      <TableCell className="text-center">
-                        <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Ativa</Badge>
+                  {saleswomen.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground text-xs">
+                        Nenhuma vendedora cadastrada.
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    saleswomen.map((row: any) => (
+                      <TableRow key={row.id}>
+                        <TableCell className="font-semibold text-xs text-slate-800">{row.name}</TableCell>
+                        <TableCell className="text-xs">
+                          <Badge variant="outline" className="border-indigo-200 text-indigo-700 bg-indigo-50/50">
+                            <MapPin className="h-3 w-3 mr-1 inline" /> {row.region}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{row.email || "—"}</TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{row.phone || "—"}</TableCell>
+                        <TableCell className="text-center">
+                          <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Ativa</Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </CardContent>
