@@ -58,6 +58,7 @@ const allNav: {
   { to: "/metas",         label: "Metas",           icon: Target,          mod: "metas" },
   { to: "/relatorio",     label: "Relatório",       icon: FileText,        mod: "relatorio" },
   { to: "/top-produtos",  label: "TOP 10 Produtos", icon: Trophy,          mod: "top_produtos" },
+  { to: "/mercadolivre",  label: "Mercado Livre",   icon: TrendingUp,      mod: "top_produtos" },
   { to: "/marketing",     label: "Marketing",       icon: Megaphone,       mod: "marketing" },
   { to: "/comercial",     label: "Comercial",       icon: Briefcase,       mod: "comercial" },
   { to: "/financeiro",    label: "Financeiro",      icon: DollarSign,      mod: "financeiro" },

@@ -18,6 +18,7 @@ import { Route as AuthenticatedUsuariosRouteImport } from './routes/_authenticat
 import { Route as AuthenticatedTopProdutosRouteImport } from './routes/_authenticated/top-produtos'
 import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authenticated/relatorio'
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
+import { Route as AuthenticatedMercadolivreRouteImport } from './routes/_authenticated/mercadolivre'
 import { Route as AuthenticatedMarketingRouteImport } from './routes/_authenticated/marketing'
 import { Route as AuthenticatedLancamentoRouteImport } from './routes/_authenticated/lancamento'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
@@ -72,6 +73,12 @@ const AuthenticatedMetasRoute = AuthenticatedMetasRouteImport.update({
   path: '/metas',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedMercadolivreRoute =
+  AuthenticatedMercadolivreRouteImport.update({
+    id: '/mercadolivre',
+    path: '/mercadolivre',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedMarketingRoute = AuthenticatedMarketingRouteImport.update({
   id: '/marketing',
   path: '/marketing',
@@ -125,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/historico': typeof AuthenticatedHistoricoRoute
   '/lancamento': typeof AuthenticatedLancamentoRoute
   '/marketing': typeof AuthenticatedMarketingRoute
+  '/mercadolivre': typeof AuthenticatedMercadolivreRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
   '/top-produtos': typeof AuthenticatedTopProdutosRoute
@@ -143,6 +151,7 @@ export interface FileRoutesByTo {
   '/historico': typeof AuthenticatedHistoricoRoute
   '/lancamento': typeof AuthenticatedLancamentoRoute
   '/marketing': typeof AuthenticatedMarketingRoute
+  '/mercadolivre': typeof AuthenticatedMercadolivreRoute
   '/metas': typeof AuthenticatedMetasRoute
   '/relatorio': typeof AuthenticatedRelatorioRoute
   '/top-produtos': typeof AuthenticatedTopProdutosRoute
@@ -163,6 +172,7 @@ export interface FileRoutesById {
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/lancamento': typeof AuthenticatedLancamentoRoute
   '/_authenticated/marketing': typeof AuthenticatedMarketingRoute
+  '/_authenticated/mercadolivre': typeof AuthenticatedMercadolivreRoute
   '/_authenticated/metas': typeof AuthenticatedMetasRoute
   '/_authenticated/relatorio': typeof AuthenticatedRelatorioRoute
   '/_authenticated/top-produtos': typeof AuthenticatedTopProdutosRoute
@@ -183,6 +193,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/lancamento'
     | '/marketing'
+    | '/mercadolivre'
     | '/metas'
     | '/relatorio'
     | '/top-produtos'
@@ -201,6 +212,7 @@ export interface FileRouteTypes {
     | '/historico'
     | '/lancamento'
     | '/marketing'
+    | '/mercadolivre'
     | '/metas'
     | '/relatorio'
     | '/top-produtos'
@@ -220,6 +232,7 @@ export interface FileRouteTypes {
     | '/_authenticated/historico'
     | '/_authenticated/lancamento'
     | '/_authenticated/marketing'
+    | '/_authenticated/mercadolivre'
     | '/_authenticated/metas'
     | '/_authenticated/relatorio'
     | '/_authenticated/top-produtos'
@@ -299,6 +312,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMetasRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/mercadolivre': {
+      id: '/_authenticated/mercadolivre'
+      path: '/mercadolivre'
+      fullPath: '/mercadolivre'
+      preLoaderRoute: typeof AuthenticatedMercadolivreRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/marketing': {
       id: '/_authenticated/marketing'
       path: '/marketing'
@@ -367,6 +387,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedLancamentoRoute: typeof AuthenticatedLancamentoRoute
   AuthenticatedMarketingRoute: typeof AuthenticatedMarketingRoute
+  AuthenticatedMercadolivreRoute: typeof AuthenticatedMercadolivreRoute
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
   AuthenticatedRelatorioRoute: typeof AuthenticatedRelatorioRoute
   AuthenticatedTopProdutosRoute: typeof AuthenticatedTopProdutosRoute
@@ -382,6 +403,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedLancamentoRoute: AuthenticatedLancamentoRoute,
   AuthenticatedMarketingRoute: AuthenticatedMarketingRoute,
+  AuthenticatedMercadolivreRoute: AuthenticatedMercadolivreRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,
   AuthenticatedRelatorioRoute: AuthenticatedRelatorioRoute,
   AuthenticatedTopProdutosRoute: AuthenticatedTopProdutosRoute,

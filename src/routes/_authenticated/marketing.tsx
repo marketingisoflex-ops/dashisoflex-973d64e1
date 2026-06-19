@@ -247,7 +247,7 @@ function MarketingPage() {
     mutationFn: async (payload: any) => {
       const { data: u } = await supabase.auth.getUser();
       if (!u.user) throw new Error("Usuário não autenticado");
-      
+
       const { error } = await supabase
         .from("marketing_campaigns")
         .insert({
@@ -435,7 +435,7 @@ function MarketingPage() {
   // ── Channel performance calculations ──
   const channelData = useMemo(() => {
     const channelMap: Record<string, { leads: number; clicks: number; spent: number; revenue: number; conversions: number }> = {};
-    
+
     // Initialize map
     Object.keys(CHANNEL_LABELS).forEach((ch) => {
       channelMap[ch] = { leads: 0, clicks: 0, spent: 0, revenue: 0, conversions: 0 };
@@ -906,8 +906,8 @@ function MarketingPage() {
                         }}
                       />
                       <Legend iconType="circle" wrapperStyle={{ fontSize: "11px" }} />
-                      <Bar dataKey="leads" name="Leads" fill="#1a4fd6" radius={[4,4,0,0]} />
-                      <Bar dataKey="conversions" name="Conversões" fill="#10b981" radius={[4,4,0,0]} />
+                      <Bar dataKey="leads" name="Leads" fill="#1a4fd6" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="conversions" name="Conversões" fill="#10b981" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}
@@ -1293,7 +1293,7 @@ function MarketingPage() {
                           fontSize: "12px",
                         }}
                       />
-                      <Bar dataKey="cpl" name="CPL (R$)" fill="#1a4fd6" radius={[4,4,0,0]} />
+                      <Bar dataKey="cpl" name="CPL (R$)" fill="#1a4fd6" radius={[4, 4, 0, 0]} />
                     </BarChart>
                   </ResponsiveContainer>
                 )}

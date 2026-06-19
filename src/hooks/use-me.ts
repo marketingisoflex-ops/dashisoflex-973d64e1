@@ -14,7 +14,8 @@ export type AppModule =
   | "engenharia"
   | "configuracoes"
   | "usuarios"
-  | "top_produtos";
+  | "top_produtos"
+  | "mercadolivre";
 
 export function useMe() {
   const fetchMe = useServerFn(getMe);
