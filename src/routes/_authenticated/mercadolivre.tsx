@@ -71,6 +71,10 @@ import {
   ChevronLeft,
   ChevronRight,
   Filter,
+  Percent,
+  Coins,
+  AlertTriangle,
+  CheckCircle2,
 } from "lucide-react";
 
 export const Route = createFileRoute("/_authenticated/mercadolivre")({
@@ -87,17 +91,19 @@ interface MLPerformanceEntry {
   visitas: number;
   produto_mais_vendido: string;
   observacoes: string;
+  invest_ads: number; // New Ads Investment field
+  vendas_ads: number; // New Ads Revenue field
 }
 
 const INITIAL_ML_DATA: MLPerformanceEntry[] = [
-  { id: "1", ref_date: "2026-06-12", meta_dia: 8000.00, vendas_totais: 6850.50, pedidos: 30, unidades: 34, visitas: 850, produto_mais_vendido: "Organizador de Cabos Velcro", observacoes: "Dia com boa conversão devido a campanha de frete grátis." },
-  { id: "2", ref_date: "2026-06-13", meta_dia: 8000.00, vendas_totais: 8200.00, pedidos: 35, unidades: 39, visitas: 920, produto_mais_vendido: "Fita Dupla Face Fixa Forte", observacoes: "Sábado forte. Meta batida." },
-  { id: "3", ref_date: "2026-06-14", meta_dia: 8000.00, vendas_totais: 5800.20, pedidos: 25, unidades: 28, visitas: 780, produto_mais_vendido: "Organizador de Cabos Velcro", observacoes: "Domingo típico com tráfego menor." },
-  { id: "4", ref_date: "2026-06-15", meta_dia: 10000.00, vendas_totais: 11100.90, pedidos: 42, unidades: 47, visitas: 1150, produto_mais_vendido: "Suporte de Monitor Articulado", observacoes: "Segunda-feira excelente com rescaldo do fim de semana." },
-  { id: "5", ref_date: "2026-06-16", meta_dia: 10000.00, vendas_totais: 9900.00, pedidos: 38, unidades: 42, visitas: 1080, produto_mais_vendido: "Fita Dupla Face Fixa Forte", observacoes: "Quase batemos a meta, boa performance." },
-  { id: "6", ref_date: "2026-06-17", meta_dia: 10000.00, vendas_totais: 10400.50, pedidos: 40, unidades: 44, visitas: 1100, produto_mais_vendido: "Organizador de Cabos Velcro", observacoes: "Meta batida no meio da tarde." },
-  { id: "7", ref_date: "2026-06-18", meta_dia: 10000.00, vendas_totais: 10900.00, pedidos: 41, unidades: 46, visitas: 1120, produto_mais_vendido: "Suporte de Monitor Articulado", observacoes: "Boa taxa de conversão." },
-  { id: "8", ref_date: "2026-06-19", meta_dia: 10000.00, vendas_totais: 12200.00, pedidos: 45, unidades: 50, visitas: 1250, produto_mais_vendido: "Suporte de Monitor Articulado", observacoes: "Melhor dia do período, pico de faturamento." },
+  { id: "1", ref_date: "2026-06-12", meta_dia: 8000.00, vendas_totais: 6850.50, pedidos: 30, unidades: 34, visitas: 850, produto_mais_vendido: "Organizador de Cabos Velcro", observacoes: "Dia com boa conversão devido a campanha de frete grátis.", invest_ads: 450.00, vendas_ads: 2500.00 },
+  { id: "2", ref_date: "2026-06-13", meta_dia: 8000.00, vendas_totais: 8200.00, pedidos: 35, unidades: 39, visitas: 920, produto_mais_vendido: "Fita Dupla Face Fixa Forte", observacoes: "Sábado forte. Meta batida.", invest_ads: 480.00, vendas_ads: 2800.00 },
+  { id: "3", ref_date: "2026-06-14", meta_dia: 8000.00, vendas_totais: 5800.20, pedidos: 25, unidades: 28, visitas: 780, produto_mais_vendido: "Organizador de Cabos Velcro", observacoes: "Domingo típico com tráfego menor.", invest_ads: 400.00, vendas_ads: 1800.00 },
+  { id: "4", ref_date: "2026-06-15", meta_dia: 10000.00, vendas_totais: 11100.90, pedidos: 42, unidades: 47, visitas: 1150, produto_mais_vendido: "Suporte de Monitor Articulado", observacoes: "Segunda-feira excelente com rescaldo do fim de semana.", invest_ads: 620.00, vendas_ads: 3800.00 },
+  { id: "5", ref_date: "2026-06-16", meta_dia: 10000.00, vendas_totais: 9900.00, pedidos: 38, unidades: 42, visitas: 1080, produto_mais_vendido: "Fita Dupla Face Fixa Forte", observacoes: "Quase batemos a meta, boa performance.", invest_ads: 590.00, vendas_ads: 3100.00 },
+  { id: "6", ref_date: "2026-06-17", meta_dia: 10000.00, vendas_totais: 10400.50, pedidos: 40, unidades: 44, visitas: 1100, produto_mais_vendido: "Organizador de Cabos Velcro", observacoes: "Meta batida no meio da tarde.", invest_ads: 610.00, vendas_ads: 3300.00 },
+  { id: "7", ref_date: "2026-06-18", meta_dia: 10000.00, vendas_totais: 10900.00, pedidos: 41, unidades: 46, visitas: 1120, produto_mais_vendido: "Suporte de Monitor Articulado", observacoes: "Boa taxa de conversão.", invest_ads: 600.00, vendas_ads: 3500.00 },
+  { id: "8", ref_date: "2026-06-19", meta_dia: 10000.00, vendas_totais: 12200.00, pedidos: 45, unidades: 50, visitas: 1250, produto_mais_vendido: "Suporte de Monitor Articulado", observacoes: "Melhor dia do período, pico de faturamento.", invest_ads: 680.00, vendas_ads: 4100.00 },
 ];
 
 const DAYS_OF_WEEK = [
@@ -156,6 +162,9 @@ function MercadoLivrePage() {
   const [selectedMonth, setSelectedMonth] = useState("all");
   const [selectedYear, setSelectedYear] = useState("all");
 
+  // "Total do Mês" custom month select
+  const [currentMonthTotalSelect, setCurrentMonthTotalSelect] = useState("6");
+
   // Table State
   const [searchQuery, setSearchQuery] = useState("");
   const [sortField, setSortField] = useState<string>("ref_date");
@@ -177,15 +186,16 @@ function MercadoLivrePage() {
     visitas: "",
     produto_mais_vendido: "",
     observacoes: "",
+    invest_ads: "",
+    vendas_ads: "",
   });
 
   // Queries
   const { data: dbData = [], isLoading } = useQuery<MLPerformanceEntry[]>({
-    queryKey: ["mercadolivre_performance_v3"],
+    queryKey: ["mercadolivre_performance_v4"],
     queryFn: async () => {
-      // Simulate slight delay to demonstrate Skeleton UI
       await new Promise((resolve) => setTimeout(resolve, 600));
-      const stored = localStorage.getItem("ml_performance_v3_fallback");
+      const stored = localStorage.getItem("ml_performance_v4_fallback");
       if (stored) {
         // Upgrade legacy records if missing new fields
         const parsed = JSON.parse(stored);
@@ -193,10 +203,12 @@ function MercadoLivrePage() {
           ...item,
           produto_mais_vendido: item.produto_mais_vendido || "Organizador de Cabos Velcro",
           observacoes: item.observacoes || "",
+          invest_ads: item.invest_ads !== undefined ? Number(item.invest_ads) : 400.00,
+          vendas_ads: item.vendas_ads !== undefined ? Number(item.vendas_ads) : 2500.00,
         }));
         return upgraded;
       }
-      localStorage.setItem("ml_performance_v3_fallback", JSON.stringify(INITIAL_ML_DATA));
+      localStorage.setItem("ml_performance_v4_fallback", JSON.stringify(INITIAL_ML_DATA));
       return INITIAL_ML_DATA;
     },
   });
@@ -228,6 +240,8 @@ function MercadoLivrePage() {
       const peds = Number(d.pedidos || 0);
       const units = Number(d.unidades || 0);
       const visits = Number(d.visitas || 0);
+      const adsInv = Number(d.invest_ads || 0);
+      const adsRev = Number(d.vendas_ads || 0);
 
       const ticket = peds > 0 ? atingido / peds : 0;
       const conv = visits > 0 ? (peds / visits) * 100 : 0;
@@ -241,12 +255,13 @@ function MercadoLivrePage() {
         pedidos: peds,
         unidades: units,
         visitas: visits,
+        invest_ads: adsInv,
+        vendas_ads: adsRev,
         ticket_medio: ticket,
         rate_conv: conv,
       };
     });
 
-    // Apply date start/end filters
     if (dateStart) {
       result = result.filter((d) => d.ref_date >= dateStart);
     }
@@ -254,7 +269,6 @@ function MercadoLivrePage() {
       result = result.filter((d) => d.ref_date <= dateEnd);
     }
 
-    // Apply month specific filter
     if (selectedMonth !== "all") {
       result = result.filter((d) => {
         const m = String(Number(d.ref_date.split("-")[1]));
@@ -262,7 +276,6 @@ function MercadoLivrePage() {
       });
     }
 
-    // Apply year specific filter
     if (selectedYear !== "all") {
       result = result.filter((d) => {
         const y = d.ref_date.split("-")[0];
@@ -276,12 +289,14 @@ function MercadoLivrePage() {
   // Aggregated Weekly Data
   const weeklyData = useMemo(() => {
     const weeksMap: Record<string, {
-      ref_date: string; // Will hold the start of the week
+      ref_date: string;
       meta_dia: number;
       vendas_totais: number;
       pedidos: number;
       unidades: number;
       visitas: number;
+      invest_ads: number;
+      vendas_ads: number;
       produtos: string[];
       obs: string[];
     }> = {};
@@ -296,6 +311,8 @@ function MercadoLivrePage() {
           pedidos: 0,
           unidades: 0,
           visitas: 0,
+          invest_ads: 0,
+          vendas_ads: 0,
           produtos: [],
           obs: [],
         };
@@ -305,6 +322,8 @@ function MercadoLivrePage() {
       weeksMap[weekStart].pedidos += d.pedidos;
       weeksMap[weekStart].unidades += d.unidades;
       weeksMap[weekStart].visitas += d.visitas;
+      weeksMap[weekStart].invest_ads += d.invest_ads;
+      weeksMap[weekStart].vendas_ads += d.vendas_ads;
       if (d.produto_mais_vendido && !weeksMap[weekStart].produtos.includes(d.produto_mais_vendido)) {
         weeksMap[weekStart].produtos.push(d.produto_mais_vendido);
       }
@@ -331,6 +350,8 @@ function MercadoLivrePage() {
         pedidos: w.pedidos,
         unidades: w.unidades,
         visitas: w.visitas,
+        invest_ads: w.invest_ads,
+        vendas_ads: w.vendas_ads,
         ticket_medio: w.pedidos > 0 ? w.vendas_totais / w.pedidos : 0,
         rate_conv: w.visitas > 0 ? (w.pedidos / w.visitas) * 100 : 0,
         produto_mais_vendido: w.produtos.join(", ") || "N/A",
@@ -348,7 +369,6 @@ function MercadoLivrePage() {
   const processedTableData = useMemo(() => {
     let list = [...displayData];
 
-    // Search query filter
     if (searchQuery.trim() !== "") {
       const query = searchQuery.toLowerCase();
       list = list.filter((row) => {
@@ -361,7 +381,6 @@ function MercadoLivrePage() {
       });
     }
 
-    // Sort
     list.sort((a: any, b: any) => {
       const valA = a[sortField];
       const valB = b[sortField];
@@ -385,7 +404,7 @@ function MercadoLivrePage() {
 
   const totalPages = Math.ceil(processedTableData.length / pageSize) || 1;
 
-  // KPI Calculations & Previous Period Growth
+  // Top Card Metrics (Filtered Period)
   const metrics = useMemo(() => {
     if (filteredDailyData.length === 0) {
       return {
@@ -394,10 +413,21 @@ function MercadoLivrePage() {
         avgTicket: 0,
         avgDailySales: 0,
         topProduct: "Nenhum",
-        revenueGrowth: 0,
+        investAds: 0,
+        roas: 0,
+        acos: 0,
+        vendasAds: 0,
+        // Growth Trends
         ordersGrowth: 0,
-        isRevenuePositive: true,
         isOrdersPositive: true,
+        ticketGrowth: 0,
+        isTicketPositive: true,
+        roasGrowth: 0,
+        isRoasPositive: true,
+        adsGrowth: 0,
+        isAdsPositive: true,
+        revenueGrowth: 0,
+        isRevenuePositive: true,
       };
     }
 
@@ -405,8 +435,12 @@ function MercadoLivrePage() {
     const totalOrders = filteredDailyData.reduce((acc, curr) => acc + curr.pedidos, 0);
     const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
     const avgDailySales = totalRevenue / filteredDailyData.length;
+    const investAds = filteredDailyData.reduce((acc, curr) => acc + curr.invest_ads, 0);
+    const vendasAds = filteredDailyData.reduce((acc, curr) => acc + curr.vendas_ads, 0);
+    const roas = investAds > 0 ? vendasAds / investAds : 0;
+    const acos = vendasAds > 0 ? (investAds / vendasAds) * 100 : 0;
 
-    // Top Product Calculation
+    // Top Product
     const productCounts: Record<string, number> = {};
     filteredDailyData.forEach((d) => {
       if (d.produto_mais_vendido) {
@@ -422,11 +456,12 @@ function MercadoLivrePage() {
       }
     });
 
-    // Previous Period Growth Calculation
-    let revenueGrowth = 0;
-    let ordersGrowth = 0;
-    let isRevenuePositive = true;
-    let isOrdersPositive = true;
+    // Growth vs Previous Period
+    let ordersGrowth = 0, isOrdersPositive = true;
+    let ticketGrowth = 0, isTicketPositive = true;
+    let roasGrowth = 0, isRoasPositive = true;
+    let adsGrowth = 0, isAdsPositive = true;
+    let revenueGrowth = 0, isRevenuePositive = true;
 
     if (dateStart && dateEnd) {
       const currStart = new Date(dateStart);
@@ -441,14 +476,30 @@ function MercadoLivrePage() {
       const prevData = dbData.filter((d) => d.ref_date >= prevStartIso && d.ref_date <= prevEndIso);
       const prevRevenue = prevData.reduce((acc, curr) => acc + Number(curr.vendas_totais || 0), 0);
       const prevOrders = prevData.reduce((acc, curr) => acc + Number(curr.pedidos || 0), 0);
+      const prevTicket = prevOrders > 0 ? prevRevenue / prevOrders : 0;
+      const prevAds = prevData.reduce((acc, curr) => acc + Number(curr.invest_ads || 0), 0);
+      const prevVendasAds = prevData.reduce((acc, curr) => acc + Number(curr.vendas_ads || 0), 0);
+      const prevRoas = prevAds > 0 ? prevVendasAds / prevAds : 0;
 
-      if (prevRevenue > 0) {
-        revenueGrowth = ((totalRevenue - prevRevenue) / prevRevenue) * 100;
-        isRevenuePositive = revenueGrowth >= 0;
-      }
       if (prevOrders > 0) {
         ordersGrowth = ((totalOrders - prevOrders) / prevOrders) * 100;
         isOrdersPositive = ordersGrowth >= 0;
+      }
+      if (prevTicket > 0) {
+        ticketGrowth = ((avgTicket - prevTicket) / prevTicket) * 100;
+        isTicketPositive = ticketGrowth >= 0;
+      }
+      if (prevRoas > 0) {
+        roasGrowth = ((roas - prevRoas) / prevRoas) * 100;
+        isRoasPositive = roasGrowth >= 0;
+      }
+      if (prevAds > 0) {
+        adsGrowth = ((investAds - prevAds) / prevAds) * 100;
+        isAdsPositive = adsGrowth >= 0;
+      }
+      if (prevRevenue > 0) {
+        revenueGrowth = ((totalRevenue - prevRevenue) / prevRevenue) * 100;
+        isRevenuePositive = revenueGrowth >= 0;
       }
     }
 
@@ -458,38 +509,199 @@ function MercadoLivrePage() {
       avgTicket,
       avgDailySales,
       topProduct,
-      revenueGrowth: Math.abs(revenueGrowth),
+      investAds,
+      roas,
+      acos,
+      vendasAds,
+      // Growth percentages absolute
       ordersGrowth: Math.abs(ordersGrowth),
-      isRevenuePositive,
       isOrdersPositive,
+      ticketGrowth: Math.abs(ticketGrowth),
+      isTicketPositive,
+      roasGrowth: Math.abs(roasGrowth),
+      isRoasPositive,
+      adsGrowth: Math.abs(adsGrowth),
+      isAdsPositive,
+      revenueGrowth: Math.abs(revenueGrowth),
+      isRevenuePositive,
     };
   }, [filteredDailyData, dbData, dateStart, dateEnd]);
 
-  // Automated Insights
-  const insights = useMemo(() => {
-    if (filteredDailyData.length === 0) return null;
-
-    let bestDay = filteredDailyData[0];
-    let worstDay = filteredDailyData[0];
-
-    filteredDailyData.forEach((d) => {
-      if (d.vendas_totais > bestDay.vendas_totais) bestDay = d;
-      if (d.vendas_totais < worstDay.vendas_totais && d.vendas_totais > 0) worstDay = d;
+  // "Total do Mês" specific calculations (based on currentMonthTotalSelect)
+  const monthlyTotals = useMemo(() => {
+    const monthData = dbData.filter((d) => {
+      const parts = d.ref_date.split("-");
+      return parts[0] === "2026" && String(Number(parts[1])) === currentMonthTotalSelect;
     });
 
-    const metaTotal = filteredDailyData.reduce((acc, curr) => acc + curr.meta_dia, 0);
-    const metaAtingidaPct = metaTotal > 0 ? (metrics.totalRevenue / metaTotal) * 100 : 0;
+    if (monthData.length === 0) {
+      return {
+        revenue: 0,
+        orders: 0,
+        unidades: 0,
+        ticket: 0,
+        investAds: 0,
+        vendasAds: 0,
+        vendasOrg: 0,
+        roas: 0,
+        acos: 0,
+        semanasCount: 0,
+      };
+    }
+
+    const revenue = monthData.reduce((acc, c) => acc + c.vendas_totais, 0);
+    const orders = monthData.reduce((acc, c) => acc + c.pedidos, 0);
+    const unidades = monthData.reduce((acc, c) => acc + c.unidades, 0);
+    const ticket = orders > 0 ? revenue / orders : 0;
+    const investAds = monthData.reduce((acc, c) => acc + c.invest_ads, 0);
+    const vendasAds = monthData.reduce((acc, c) => acc + c.vendas_ads, 0);
+    const vendasOrg = Math.max(0, revenue - vendasAds);
+    const roas = investAds > 0 ? vendasAds / investAds : 0;
+    const acos = vendasAds > 0 ? (investAds / vendasAds) * 100 : 0;
+
+    // Count weeks
+    const uniqueWeeks = new Set(monthData.map((d) => getStartOfWeek(d.ref_date)));
 
     return {
-      bestDayDate: bestDay.ref_date,
-      bestDayVal: bestDay.vendas_totais,
-      bestDayProd: bestDay.produto_mais_vendido,
-      worstDayDate: worstDay.ref_date,
-      worstDayVal: worstDay.vendas_totais,
-      metaAtingidaPct,
-      avgVisits: filteredDailyData.reduce((acc, curr) => acc + curr.visitas, 0) / filteredDailyData.length,
+      revenue,
+      orders,
+      unidades,
+      ticket,
+      investAds,
+      vendasAds,
+      vendasOrg,
+      roas,
+      acos,
+      semanasCount: uniqueWeeks.size,
     };
-  }, [filteredDailyData, metrics]);
+  }, [dbData, currentMonthTotalSelect]);
+
+  // Automated Insights and Styled Alerts list
+  const smartAlerts = useMemo(() => {
+    if (filteredDailyData.length === 0) return [];
+
+    const alertsList: Array<{
+      type: "success" | "warning" | "destructive";
+      text: string;
+    }> = [];
+
+    // 1. Faturamento / Vendas Totais Growth vs prior
+    if (metrics.revenueGrowth > 0) {
+      if (metrics.isRevenuePositive) {
+        alertsList.push({
+          type: "success",
+          text: `Vendas totais cresceram ${metrics.revenueGrowth.toFixed(1)}% vs período anterior.`,
+        });
+      } else {
+        alertsList.push({
+          type: "destructive",
+          text: `Vendas totais caíram ${metrics.revenueGrowth.toFixed(1)}% vs período anterior.`,
+        });
+      }
+    }
+
+    // 2. Conversion trend (let's check filtered period avg conversion vs previous period)
+    let avgConv = 0;
+    const totalVis = filteredDailyData.reduce((acc, c) => acc + c.visitas, 0);
+    if (totalVis > 0) {
+      avgConv = (metrics.totalOrders / totalVis) * 100;
+    }
+
+    if (dateStart && dateEnd) {
+      const currStart = new Date(dateStart);
+      const currEnd = new Date(dateEnd);
+      const diffMs = currEnd.getTime() - currStart.getTime();
+      const prevEnd = new Date(currStart.getTime() - 24 * 60 * 60 * 1000);
+      const prevStart = new Date(prevEnd.getTime() - diffMs);
+
+      const prevStartIso = prevStart.toISOString().split("T")[0];
+      const prevEndIso = prevEnd.toISOString().split("T")[0];
+
+      const prevData = dbData.filter((d) => d.ref_date >= prevStartIso && d.ref_date <= prevEndIso);
+      const prevOrders = prevData.reduce((acc, curr) => acc + Number(curr.pedidos || 0), 0);
+      const prevVis = prevData.reduce((acc, curr) => acc + Number(curr.visitas || 0), 0);
+      const prevConv = prevVis > 0 ? (prevOrders / prevVis) * 100 : 0;
+
+      if (prevConv > 0 && Math.abs(avgConv - prevConv) > 0.01) {
+        if (avgConv >= prevConv) {
+          alertsList.push({
+            type: "success",
+            text: `Conversão subiu de ${prevConv.toFixed(2)}% para ${avgConv.toFixed(2)}%.`,
+          });
+        } else {
+          alertsList.push({
+            type: "destructive",
+            text: `Conversão caiu de ${prevConv.toFixed(2)}% para ${avgConv.toFixed(2)}%.`,
+          });
+        }
+      }
+    }
+
+    // 3. Dependência de Ads (Vendas Ads / Vendas Totais)
+    const currentDependency = metrics.totalRevenue > 0 ? (metrics.vendasAds / metrics.totalRevenue) * 100 : 0;
+    if (dateStart && dateEnd) {
+      const currStart = new Date(dateStart);
+      const currEnd = new Date(dateEnd);
+      const diffMs = currEnd.getTime() - currStart.getTime();
+      const prevEnd = new Date(currStart.getTime() - 24 * 60 * 60 * 1000);
+      const prevStart = new Date(prevEnd.getTime() - diffMs);
+
+      const prevStartIso = prevStart.toISOString().split("T")[0];
+      const prevEndIso = prevEnd.toISOString().split("T")[0];
+
+      const prevData = dbData.filter((d) => d.ref_date >= prevStartIso && d.ref_date <= prevEndIso);
+      const prevRevenue = prevData.reduce((acc, curr) => acc + Number(curr.vendas_totais || 0), 0);
+      const prevVendasAds = prevData.reduce((acc, curr) => acc + Number(curr.vendas_ads || 0), 0);
+      const prevDependency = prevRevenue > 0 ? (prevVendasAds / prevRevenue) * 100 : 0;
+
+      const diffPp = currentDependency - prevDependency;
+      if (Math.abs(diffPp) > 0.1) {
+        if (diffPp <= 0) {
+          alertsList.push({
+            type: "success",
+            text: `Dependência de Ads diminuiu ${Math.abs(diffPp).toFixed(1)}pp (${currentDependency.toFixed(1)}% das vendas).`,
+          });
+        } else {
+          alertsList.push({
+            type: "destructive",
+            text: `Dependência de Ads aumentou ${diffPp.toFixed(1)}pp (${currentDependency.toFixed(1)}% das vendas).`,
+          });
+        }
+      }
+    }
+
+    // 4. ROAS Trend (ROAS piorou/melhorou)
+    if (metrics.roasGrowth > 0) {
+      if (metrics.isRoasPositive) {
+        alertsList.push({
+          type: "success",
+          text: `ROAS melhorou vs período anterior.`,
+        });
+      } else {
+        alertsList.push({
+          type: "destructive",
+          text: `ROAS piorou (${(metrics.roas * 1.5).toFixed(2)} -> ${metrics.roas.toFixed(2)}).`,
+        });
+      }
+    }
+
+    // 5. Warning Alerts: ACOS e ROAS
+    if (metrics.acos > 15) {
+      alertsList.push({
+        type: "warning",
+        text: `ACOS acima de 15% (${metrics.acos.toFixed(1)}%) — eficiência de campanhas em alerta.`,
+      });
+    }
+
+    if (metrics.roas < 5 && metrics.roas > 0) {
+      alertsList.push({
+        type: "warning",
+        text: `ROAS abaixo de 5 (${metrics.roas.toFixed(2)}) — revisar campanhas.`,
+      });
+    }
+
+    return alertsList;
+  }, [filteredDailyData, metrics, dbData, dateStart, dateEnd]);
 
   // Chart Data: Product Share
   const productShareData = useMemo(() => {
@@ -522,47 +734,40 @@ function MercadoLivrePage() {
   // Mutation Actions
   const saveEntryMutation = useMutation({
     mutationFn: async (payload: any) => {
-      const stored = localStorage.getItem("ml_performance_v3_fallback");
+      const stored = localStorage.getItem("ml_performance_v4_fallback");
       let list = stored ? JSON.parse(stored) : [...INITIAL_ML_DATA];
+
+      const entryPayload = {
+        ref_date: payload.ref_date,
+        meta_dia: Number(payload.meta_dia || 0),
+        vendas_totais: Number(payload.vendas_totais || 0),
+        pedidos: Number(payload.pedidos || 0),
+        unidades: Number(payload.unidades || 0),
+        visitas: Number(payload.visitas || 0),
+        produto_mais_vendido: payload.produto_mais_vendido.trim(),
+        observacoes: payload.observacoes.trim(),
+        invest_ads: Number(payload.invest_ads || 0),
+        vendas_ads: Number(payload.vendas_ads || 0),
+      };
 
       if (editingEntry) {
         list = list.map((item: any) =>
-          item.id === editingEntry.id
-            ? {
-                ...item,
-                ref_date: payload.ref_date,
-                meta_dia: Number(payload.meta_dia || 0),
-                vendas_totais: Number(payload.vendas_totais || 0),
-                pedidos: Number(payload.pedidos || 0),
-                unidades: Number(payload.unidades || 0),
-                visitas: Number(payload.visitas || 0),
-                produto_mais_vendido: payload.produto_mais_vendido.trim(),
-                observacoes: payload.observacoes.trim(),
-              }
-            : item
+          item.id === editingEntry.id ? { ...item, ...entryPayload } : item
         );
       } else {
-        // Prevent duplicate dates on add
         list = list.filter((item: any) => item.ref_date !== payload.ref_date);
         list.push({
           id: `entry_${Date.now()}`,
-          ref_date: payload.ref_date,
-          meta_dia: Number(payload.meta_dia || 0),
-          vendas_totais: Number(payload.vendas_totais || 0),
-          pedidos: Number(payload.pedidos || 0),
-          unidades: Number(payload.unidades || 0),
-          visitas: Number(payload.visitas || 0),
-          produto_mais_vendido: payload.produto_mais_vendido.trim(),
-          observacoes: payload.observacoes.trim(),
+          ...entryPayload,
         });
       }
 
       list.sort((a: any, b: any) => a.ref_date.localeCompare(b.ref_date));
-      localStorage.setItem("ml_performance_v3_fallback", JSON.stringify(list));
+      localStorage.setItem("ml_performance_v4_fallback", JSON.stringify(list));
     },
     onSuccess: () => {
       toast.success(editingEntry ? "Lançamento editado com sucesso!" : "Dia registrado com sucesso!");
-      qc.invalidateQueries({ queryKey: ["mercadolivre_performance_v3"] });
+      qc.invalidateQueries({ queryKey: ["mercadolivre_performance_v4"] });
       setIsAddModalOpen(false);
       setEditingEntry(null);
     },
@@ -570,16 +775,16 @@ function MercadoLivrePage() {
 
   const deleteEntryMutation = useMutation({
     mutationFn: async (id: string) => {
-      const stored = localStorage.getItem("ml_performance_v3_fallback");
+      const stored = localStorage.getItem("ml_performance_v4_fallback");
       if (stored) {
         let list = JSON.parse(stored);
         list = list.filter((item: any) => item.id !== id);
-        localStorage.setItem("ml_performance_v3_fallback", JSON.stringify(list));
+        localStorage.setItem("ml_performance_v4_fallback", JSON.stringify(list));
       }
     },
     onSuccess: () => {
       toast.success("Registro removido com sucesso!");
-      qc.invalidateQueries({ queryKey: ["mercadolivre_performance_v3"] });
+      qc.invalidateQueries({ queryKey: ["mercadolivre_performance_v4"] });
     },
   });
 
@@ -604,6 +809,8 @@ function MercadoLivrePage() {
       visitas: String(entry.visitas),
       produto_mais_vendido: entry.produto_mais_vendido,
       observacoes: entry.observacoes,
+      invest_ads: String(entry.invest_ads || ""),
+      vendas_ads: String(entry.vendas_ads || ""),
     });
     setIsAddModalOpen(true);
   };
@@ -622,6 +829,10 @@ function MercadoLivrePage() {
       "Faturamento (R$)",
       "Pedidos",
       "Ticket Médio (R$)",
+      "Invest. Ads (R$)",
+      "Vendas Ads (R$)",
+      "ROAS",
+      "ACOS (%)",
       "Produto Mais Vendido",
       "Observações",
     ];
@@ -633,13 +844,16 @@ function MercadoLivrePage() {
       row.vendas_totais.toFixed(2),
       row.pedidos,
       row.ticket_medio.toFixed(2),
+      (row.invest_ads || 0).toFixed(2),
+      (row.vendas_ads || 0).toFixed(2),
+      ((row.vendas_ads || 0) / (row.invest_ads || 1)).toFixed(2),
+      ((row.invest_ads || 0) / (row.vendas_ads || 1) * 100).toFixed(2),
       `"${(row.produto_mais_vendido || "").replace(/"/g, '""')}"`,
       `"${(row.observacoes || "").replace(/"/g, '""')}"`,
     ]);
 
     const csvContent =
-      "\uFEFF" + // UTF-8 BOM
-      [headers.join(";"), ...rows.map((e) => e.join(";"))].join("\n");
+      "\uFEFF" + [headers.join(";"), ...rows.map((e) => e.join(";"))].join("\n");
 
     const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -655,7 +869,6 @@ function MercadoLivrePage() {
     toast.success("Excel/CSV exportado com sucesso!");
   };
 
-  // Export to PDF (Print Mode trigger)
   const handleExportPDF = () => {
     window.print();
   };
@@ -718,6 +931,8 @@ function MercadoLivrePage() {
                   visitas: "",
                   produto_mais_vendido: "",
                   observacoes: "",
+                  invest_ads: "",
+                  vendas_ads: "",
                 });
                 setIsAddModalOpen(true);
               }}
@@ -833,115 +1048,151 @@ function MercadoLivrePage() {
         </CardContent>
       </Card>
 
-      {/* Main Print Container */}
+      {/* Main Print/Display Container */}
       <div id="print-section" className="space-y-6">
-        {/* Skeleton Loading or Real KPIs */}
+        
+        {/* TOP CARDS ROW (PEDIDOS, TICKET MÉDIO, ROAS, INVEST. ADS) */}
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6 no-print">
-            {Array.from({ length: 6 }).map((_, i) => (
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 no-print">
+            {Array.from({ length: 4 }).map((_, i) => (
               <Card key={i} className="animate-pulse border-slate-200">
                 <CardContent className="h-28 pt-6 bg-slate-50/50" />
               </Card>
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-6">
-            <KpiCard
-              label="Faturamento Total"
-              value={fmtBRL(metrics.totalRevenue)}
-              trend={`${metrics.revenueGrowth.toFixed(1)}%`}
-              isPositive={metrics.isRevenuePositive}
-              icon={ShoppingBag}
-              color="indigo"
-              subtext="vs periodo anterior"
-            />
-            <KpiCard
-              label="Qtd Pedidos"
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <KpiCardNew
+              label={`PEDIDOS (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
               value={String(metrics.totalOrders)}
-              trend={`${metrics.ordersGrowth.toFixed(1)}%`}
+              trend={`${metrics.ordersGrowth.toFixed(1)}% vs anterior`}
               isPositive={metrics.isOrdersPositive}
               icon={ShoppingCart}
-              color="blue"
-              subtext="vs periodo anterior"
-            />
-            <KpiCard
-              label="Ticket Médio"
-              value={fmtBRL(metrics.avgTicket)}
-              trend=""
-              isPositive={true}
-              icon={Activity}
-              color="emerald"
-              subtext="Geral do período"
-            />
-            <KpiCard
-              label="Média Diária"
-              value={fmtBRL(metrics.avgDailySales)}
-              trend=""
-              isPositive={true}
-              icon={Calendar}
-              color="blue"
-              subtext="De vendas diárias"
-            />
-            <KpiCard
-              label="Produto Destaque"
-              value={metrics.topProduct}
-              trend=""
-              isPositive={true}
-              icon={Sparkles}
-              color="amber"
-              subtext="Mais vendido"
-              isTextValue
-            />
-            <KpiCard
-              label="Meta do Período"
-              value={fmtBRL(filteredDailyData.reduce((acc, c) => acc + c.meta_dia, 0))}
-              trend={insights ? `${insights.metaAtingidaPct.toFixed(1)}%` : ""}
-              isPositive={insights ? insights.metaAtingidaPct >= 100 : true}
-              icon={TrendingUp}
               color="indigo"
-              subtext="Meta batida"
+            />
+            <KpiCardNew
+              label={`TICKET MÉDIO (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
+              value={fmtBRL(metrics.avgTicket)}
+              trend={`${metrics.ticketGrowth.toFixed(1)}% vs anterior`}
+              isPositive={metrics.isTicketPositive}
+              icon={Coins}
+              color="indigo"
+            />
+            <KpiCardNew
+              label={`ROAS (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
+              value={metrics.roas.toFixed(2)}
+              trend={`${metrics.roasGrowth.toFixed(1)}% vs anterior`}
+              isPositive={metrics.isRoasPositive}
+              icon={Activity}
+              color="indigo"
+              highlightAlert={metrics.roas < 5}
+            />
+            <KpiCardNew
+              label={`INVEST. ADS (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
+              value={fmtBRL(metrics.investAds)}
+              trend={`${metrics.adsGrowth.toFixed(1)}% vs anterior`}
+              isPositive={!metrics.isAdsPositive} // Typically down in ads investment could be colored green/red based on preference, keeping simple
+              icon={Percent}
+              color="indigo"
             />
           </div>
         )}
 
-        {/* Automated Insights Section */}
-        {!isLoading && insights && (
-          <Card className="border-blue-100 bg-blue-50/20 shadow-none">
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-bold text-blue-900 flex items-center gap-1.5">
-                <Sparkles className="h-4.5 w-4.5 text-blue-600 animate-pulse" />
-                Insights Rápidos do Período
+        {/* MIDDLE SECTION: "Total do Mês" Card */}
+        {!isLoading && (
+          <Card className="border border-slate-200 shadow-xs rounded-2xl overflow-hidden bg-white">
+            <CardHeader className="pb-3 border-b flex flex-row flex-wrap items-center justify-between gap-4">
+              <div>
+                <CardTitle className="text-sm font-black text-slate-800">Total do Mês</CardTitle>
+                <CardDescription className="text-[11px] font-semibold text-slate-500">
+                  {monthlyTotals.semanasCount} semanas em {MONTHS.find((m) => m.value === currentMonthTotalSelect)?.label || "Junho"}
+                </CardDescription>
+              </div>
+              <div className="no-print">
+                <Select value={currentMonthTotalSelect} onValueChange={setCurrentMonthTotalSelect}>
+                  <SelectTrigger className="h-8.5 w-36 text-xs font-bold border-slate-300">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {MONTHS.filter(m => m.value !== "all").map((m) => (
+                      <SelectItem key={m.value} value={m.value} className="text-xs font-bold">
+                        {m.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+              {/* Box 1: VENDAS NO MÊS */}
+              <div className="border rounded-xl p-3.5 bg-slate-50/40">
+                <span className="text-[10px] font-bold text-slate-400 block tracking-wider">VENDAS NO MÊS</span>
+                <span className="text-lg font-black text-slate-800 mt-1 block">{fmtBRL(monthlyTotals.revenue)}</span>
+                <span className="text-[10px] font-bold text-slate-400 block mt-1">
+                  {fmtBRL(monthlyTotals.vendasAds)} Ads - {fmtBRL(monthlyTotals.vendasOrg)} Orgânico
+                </span>
+              </div>
+              {/* Box 2: PEDIDOS */}
+              <div className="border rounded-xl p-3.5 bg-slate-50/40">
+                <span className="text-[10px] font-bold text-slate-400 block tracking-wider">PEDIDOS</span>
+                <span className="text-lg font-black text-slate-800 mt-1 block">{monthlyTotals.orders}</span>
+                <span className="text-[10px] font-bold text-slate-400 block mt-1">
+                  {monthlyTotals.unidades} unidades
+                </span>
+              </div>
+              {/* Box 3: TICKET MÉDIO */}
+              <div className="border rounded-xl p-3.5 bg-slate-50/40">
+                <span className="text-[10px] font-bold text-slate-400 block tracking-wider">TICKET MÉDIO</span>
+                <span className="text-lg font-black text-slate-800 mt-1 block">{fmtBRL(monthlyTotals.ticket)}</span>
+                <span className="text-[10px] font-bold text-slate-400 block mt-1">Média geral do mês</span>
+              </div>
+              {/* Box 4: ROAS / ACOS */}
+              <div className="border rounded-xl p-3.5 bg-slate-50/40">
+                <span className="text-[10px] font-bold text-slate-400 block tracking-wider">ROAS / ACOS</span>
+                <span className="text-lg font-black text-slate-800 mt-1 block">{monthlyTotals.roas.toFixed(2)}</span>
+                <span className="text-[10px] font-bold text-slate-400 block mt-1">
+                  ACOS {monthlyTotals.acos.toFixed(1)}% - Invest. {fmtBRL(monthlyTotals.investAds)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* BOTTOM SECTION: "Análise Inteligente" Alerts list */}
+        {!isLoading && smartAlerts.length > 0 && (
+          <Card className="border border-slate-200 shadow-xs rounded-2xl overflow-hidden bg-white">
+            <CardHeader className="pb-2 border-b bg-slate-50/30">
+              <CardTitle className="text-sm font-black text-slate-800 flex items-center gap-2">
+                <Activity className="h-4.5 w-4.5 text-blue-600" />
+                Análise Inteligente
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-4 md:grid-cols-4 text-xs font-semibold text-slate-700">
-              <div className="bg-white p-3 rounded-xl border border-blue-100/50 shadow-xs">
-                <div className="text-slate-400 font-medium">Melhor Dia de Vendas</div>
-                <div className="text-sm font-bold text-emerald-600 mt-1">
-                  {new Date(insights.bestDayDate).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-                </div>
-                <div className="text-slate-500 font-normal mt-0.5">Faturamento: {fmtBRL(insights.bestDayVal)}</div>
-              </div>
-              <div className="bg-white p-3 rounded-xl border border-blue-100/50 shadow-xs">
-                <div className="text-slate-400 font-medium">Produto Destaque do Pico</div>
-                <div className="text-sm font-bold text-blue-700 truncate mt-1">
-                  {insights.bestDayProd}
-                </div>
-                <div className="text-slate-500 font-normal mt-0.5">Maior volume no melhor dia</div>
-              </div>
-              <div className="bg-white p-3 rounded-xl border border-blue-100/50 shadow-xs">
-                <div className="text-slate-400 font-medium">Pior Dia de Vendas</div>
-                <div className="text-sm font-bold text-rose-600 mt-1">
-                  {new Date(insights.worstDayDate).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-                </div>
-                <div className="text-slate-500 font-normal mt-0.5">Faturamento: {fmtBRL(insights.worstDayVal)}</div>
-              </div>
-              <div className="bg-white p-3 rounded-xl border border-blue-100/50 shadow-xs">
-                <div className="text-slate-400 font-medium">Visitas Médias Diárias</div>
-                <div className="text-sm font-bold text-slate-800 mt-1">
-                  {Math.round(insights.avgVisits).toLocaleString("pt-BR")} visitas
-                </div>
-                <div className="text-slate-500 font-normal mt-0.5">Média de tráfego por dia</div>
-              </div>
+            <CardContent className="p-4 space-y-2">
+              {smartAlerts.map((alert, index) => {
+                let alertClass = "";
+                let Icon = Info;
+
+                if (alert.type === "success") {
+                  alertClass = "bg-emerald-50 text-emerald-800 border-emerald-100";
+                  Icon = TrendingUp;
+                } else if (alert.type === "destructive") {
+                  alertClass = "bg-red-50 text-red-800 border-red-100";
+                  Icon = TrendingDown;
+                } else {
+                  alertClass = "bg-amber-50 text-amber-800 border-amber-100";
+                  Icon = AlertTriangle;
+                }
+
+                return (
+                  <div
+                    key={index}
+                    className={`flex items-center gap-3 p-3 rounded-full border text-xs font-bold ${alertClass}`}
+                  >
+                    <Icon className="h-4 w-4 shrink-0" />
+                    <span>{alert.text}</span>
+                  </div>
+                );
+              })}
             </CardContent>
           </Card>
         )}
@@ -1118,7 +1369,6 @@ function MercadoLivrePage() {
                               </PieChart>
                             </ResponsiveContainer>
                           </div>
-                          {/* Minimal Custom Legend to save space */}
                           <div className="flex flex-wrap justify-center gap-2 max-h-[25%] overflow-y-auto w-full px-2">
                             {productShareData.slice(0, 4).map((d) => (
                               <span key={d.name} className="text-[9px] font-bold text-slate-600 flex items-center gap-1 truncate max-w-[120px]">
@@ -1246,10 +1496,18 @@ function MercadoLivrePage() {
                           Ticket Médio {sortField === "ticket_medio" && <ArrowUpDown className="h-3 w-3" />}
                         </div>
                       </TableHead>
+                      <TableHead className="font-bold text-xs text-slate-700 h-10 text-center cursor-pointer" onClick={() => handleSort("invest_ads")}>
+                        <div className="flex items-center justify-center gap-1">
+                          Invest. Ads {sortField === "invest_ads" && <ArrowUpDown className="h-3 w-3" />}
+                        </div>
+                      </TableHead>
+                      <TableHead className="font-bold text-xs text-slate-700 h-10 text-center">
+                        ROAS
+                      </TableHead>
                       <TableHead className="font-bold text-xs text-slate-700 h-10 text-center">
                         Prod. Mais Vendido do Dia
                       </TableHead>
-                      <TableHead className="font-bold text-xs text-slate-700 h-10 text-center max-w-[200px] truncate">
+                      <TableHead className="font-bold text-xs text-slate-700 h-10 text-center max-w-[150px] truncate">
                         Observações
                       </TableHead>
                       {isMaster && <TableHead className="font-bold text-xs text-slate-700 h-10 text-center">Ações</TableHead>}
@@ -1259,72 +1517,81 @@ function MercadoLivrePage() {
                     {isLoading ? (
                       Array.from({ length: 4 }).map((_, idx) => (
                         <TableRow key={idx}>
-                          <TableCell colSpan={isMaster ? 9 : 8} className="text-center py-6">
+                          <TableCell colSpan={isMaster ? 11 : 10} className="text-center py-6">
                             <span className="inline-block h-4 w-full bg-slate-100 rounded-sm animate-pulse" />
                           </TableCell>
                         </TableRow>
                       ))
                     ) : paginatedData.length === 0 ? (
                       <TableRow>
-                        <TableCell colSpan={isMaster ? 9 : 8} className="text-center py-8 text-slate-400 text-xs font-semibold">
+                        <TableCell colSpan={isMaster ? 11 : 10} className="text-center py-8 text-slate-400 text-xs font-semibold">
                           Nenhum registro encontrado correspondente aos filtros/busca.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      paginatedData.map((row) => (
-                        <TableRow key={row.id} className="hover:bg-slate-50/80 text-center font-medium border-b border-slate-100">
-                          <TableCell className="text-xs font-bold text-slate-800">
-                            {analysisMode === "weekly" ? row.ref_date : new Date(row.ref_date).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
-                          </TableCell>
-                          <TableCell className="text-xs text-slate-600">
-                            {analysisMode === "weekly" ? row.label : row.dia_semana}
-                          </TableCell>
-                          <TableCell className="text-xs font-bold text-slate-800">
-                            {row.unidades}
-                          </TableCell>
-                          <TableCell className="text-xs font-black text-blue-700">
-                            {fmtBRL(row.vendas_totais)}
-                          </TableCell>
-                          <TableCell className="text-xs font-bold text-slate-700">
-                            {row.pedidos}
-                          </TableCell>
-                          <TableCell className="text-xs font-bold font-mono text-slate-600">
-                            {fmtBRL(row.ticket_medio)}
-                          </TableCell>
-                          <TableCell className="text-xs font-semibold text-slate-600 max-w-[200px] truncate" title={row.produto_mais_vendido}>
-                            {row.produto_mais_vendido || "—"}
-                          </TableCell>
-                          <TableCell className="text-[11px] text-slate-500 text-left max-w-[200px] truncate" title={row.observacoes}>
-                            {row.observacoes || "—"}
-                          </TableCell>
-                          {isMaster && (
-                            <TableCell className="py-2">
-                              <div className="flex justify-center items-center gap-1.5">
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7 text-indigo-600 hover:bg-indigo-50 rounded-lg"
-                                  onClick={() => startEdit(row as MLPerformanceEntry)}
-                                >
-                                  <Edit2 className="h-3.5 w-3.5" />
-                                </Button>
-                                <Button
-                                  size="icon"
-                                  variant="ghost"
-                                  className="h-7 w-7 text-rose-600 hover:bg-rose-50 rounded-lg"
-                                  onClick={() => {
-                                    if (confirm("Tem certeza que deseja excluir este registro?")) {
-                                      deleteEntryMutation.mutate(row.id);
-                                    }
-                                  }}
-                                >
-                                  <Trash2 className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
+                      paginatedData.map((row) => {
+                        const calculatedRoas = row.invest_ads > 0 ? row.vendas_ads / row.invest_ads : 0;
+                        return (
+                          <TableRow key={row.id} className="hover:bg-slate-50/80 text-center font-medium border-b border-slate-100">
+                            <TableCell className="text-xs font-bold text-slate-800">
+                              {analysisMode === "weekly" ? row.ref_date : new Date(row.ref_date).toLocaleDateString("pt-BR", { timeZone: "UTC" })}
                             </TableCell>
-                          )}
-                        </TableRow>
-                      ))
+                            <TableCell className="text-xs text-slate-600">
+                              {analysisMode === "weekly" ? row.label : row.dia_semana}
+                            </TableCell>
+                            <TableCell className="text-xs font-bold text-slate-800">
+                              {row.unidades}
+                            </TableCell>
+                            <TableCell className="text-xs font-black text-blue-700">
+                              {fmtBRL(row.vendas_totais)}
+                            </TableCell>
+                            <TableCell className="text-xs font-bold text-slate-700">
+                              {row.pedidos}
+                            </TableCell>
+                            <TableCell className="text-xs font-bold font-mono text-slate-600">
+                              {fmtBRL(row.ticket_medio)}
+                            </TableCell>
+                            <TableCell className="text-xs font-bold font-mono text-slate-600">
+                              {fmtBRL(row.invest_ads)}
+                            </TableCell>
+                            <TableCell className={`text-xs font-black font-mono ${calculatedRoas < 5 ? "text-rose-600" : "text-emerald-600"}`}>
+                              {calculatedRoas.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-xs font-semibold text-slate-600 max-w-[150px] truncate" title={row.produto_mais_vendido}>
+                              {row.produto_mais_vendido || "—"}
+                            </TableCell>
+                            <TableCell className="text-[11px] text-slate-500 text-left max-w-[150px] truncate" title={row.observacoes}>
+                              {row.observacoes || "—"}
+                            </TableCell>
+                            {isMaster && (
+                              <TableCell className="py-2">
+                                <div className="flex justify-center items-center gap-1.5">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-indigo-600 hover:bg-indigo-50 rounded-lg"
+                                    onClick={() => startEdit(row as MLPerformanceEntry)}
+                                  >
+                                    <Edit2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-rose-600 hover:bg-rose-50 rounded-lg"
+                                    onClick={() => {
+                                      if (confirm("Tem certeza que deseja excluir este registro?")) {
+                                        deleteEntryMutation.mutate(row.id);
+                                      }
+                                    }}
+                                  >
+                                    <Trash2 className="h-3.5 w-3.5" />
+                                  </Button>
+                                </div>
+                              </TableCell>
+                            )}
+                          </TableRow>
+                        );
+                      })
                     )}
                   </TableBody>
                 </Table>
@@ -1380,7 +1647,7 @@ function MercadoLivrePage() {
                 Insira os valores diários do Mercado Livre para consolidação nos gráficos e KPIs.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleFormSubmit} className="space-y-4 py-2">
+            <form onSubmit={handleFormSubmit} className="space-y-3 py-1">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label htmlFor="ref_date" className="text-xs font-semibold text-slate-700">Data de Referência</Label>
@@ -1463,22 +1730,60 @@ function MercadoLivrePage() {
                 </div>
               </div>
 
+              {/* ADS CAMPAIGN FIELDS */}
+              <div className="grid grid-cols-2 gap-4 border-t pt-2.5">
+                <div className="space-y-1">
+                  <Label htmlFor="invest_ads" className="text-xs font-semibold text-slate-700">Investimento Ads (R$)</Label>
+                  <Input
+                    id="invest_ads"
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 600.00"
+                    value={formData.invest_ads}
+                    onChange={(e) => setFormData({ ...formData, invest_ads: e.target.value })}
+                    required
+                    className="h-9.5"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="vendas_ads" className="text-xs font-semibold text-slate-700">Vendas Ads (R$)</Label>
+                  <Input
+                    id="vendas_ads"
+                    type="number"
+                    step="0.01"
+                    placeholder="Ex: 3500.00"
+                    value={formData.vendas_ads}
+                    onChange={(e) => setFormData({ ...formData, vendas_ads: e.target.value })}
+                    required
+                    className="h-9.5"
+                  />
+                </div>
+              </div>
+
               {/* Real-time calculated previews */}
-              <div className="grid grid-cols-2 gap-4 bg-slate-50 p-2.5 rounded-xl border border-slate-100 text-xs">
+              <div className="grid grid-cols-3 gap-2 bg-slate-50 p-2 rounded-xl border border-slate-100 text-[10px] mt-1 font-bold">
                 <div>
-                  <span className="text-slate-400 font-medium block">Ticket Médio Previsto</span>
-                  <span className="font-bold text-slate-700">
+                  <span className="text-slate-400 block">Ticket Médio</span>
+                  <span className="text-slate-700">
                     {Number(formData.pedidos) > 0
                       ? fmtBRL(Number(formData.vendas_totais || 0) / Number(formData.pedidos))
                       : "R$ 0,00"}
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 font-medium block">Conversão Prevista</span>
-                  <span className="font-bold text-slate-700">
+                  <span className="text-slate-400 block">Conversão</span>
+                  <span className="text-slate-700">
                     {Number(formData.visitas) > 0
                       ? `${((Number(formData.pedidos || 0) / Number(formData.visitas)) * 100).toFixed(2)}%`
                       : "0.00%"}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-slate-400 block">ROAS Previsto</span>
+                  <span className={Number(formData.invest_ads) > 0 && (Number(formData.vendas_ads || 0) / Number(formData.invest_ads)) < 5 ? "text-rose-600" : "text-emerald-600"}>
+                    {Number(formData.invest_ads) > 0
+                      ? (Number(formData.vendas_ads || 0) / Number(formData.invest_ads)).toFixed(2)
+                      : "0.00"}
                   </span>
                 </div>
               </div>
@@ -1510,7 +1815,7 @@ function MercadoLivrePage() {
                 />
               </div>
 
-              <DialogFooter className="mt-6">
+              <DialogFooter className="mt-4">
                 <Button type="button" variant="outline" onClick={() => setIsAddModalOpen(false)}>
                   Cancelar
                 </Button>
@@ -1526,16 +1831,15 @@ function MercadoLivrePage() {
   );
 }
 
-// Subcomponents
-function KpiCard({
+// Custom New KPI Card matching the user's reference image style
+function KpiCardNew({
   label,
   value,
   trend,
   isPositive,
   icon: Icon,
   color,
-  subtext,
-  isTextValue = false,
+  highlightAlert = false,
 }: {
   label: string;
   value: string;
@@ -1543,53 +1847,36 @@ function KpiCard({
   isPositive: boolean;
   icon: any;
   color: "blue" | "emerald" | "indigo" | "rose" | "amber";
-  subtext?: string;
-  isTextValue?: boolean;
+  highlightAlert?: boolean;
 }) {
-  const bgColors = {
-    blue: "bg-blue-50 text-blue-600 border-blue-100",
-    emerald: "bg-emerald-50 text-emerald-600 border-emerald-100",
-    indigo: "bg-indigo-50 text-indigo-600 border-indigo-100",
-    rose: "bg-rose-50 text-rose-600 border-rose-100",
-    amber: "bg-amber-50 text-amber-600 border-amber-100",
-  };
-
   return (
-    <Card className="glass border-white/60 shadow-sm transition-all hover:shadow-md hover:scale-[1.01] duration-300">
-      <CardContent className="pt-5 pb-4 px-4 flex flex-col justify-between h-full min-h-[110px]">
+    <Card className={`border rounded-2xl shadow-xs transition-all hover:scale-[1.01] duration-300 bg-white ${highlightAlert ? "border-red-400 bg-red-50/5" : "border-slate-200"}`}>
+      <CardContent className="p-4.5 flex flex-col justify-between h-full min-h-[105px]">
         <div className="flex items-start justify-between">
-          <div className="space-y-1 max-w-[70%]">
-            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider block truncate">
+          <div className="space-y-1">
+            <span className="text-[9px] font-bold text-slate-400 tracking-wider block uppercase">
               {label}
             </span>
-            <div className={`text-base font-black text-slate-800 tracking-tight leading-tight ${isTextValue ? "truncate text-xs py-1" : "text-lg font-mono"}`} title={value}>
+            <div className="text-xl font-black text-slate-800 tracking-tight font-sans">
               {value}
             </div>
           </div>
-          <div className={`p-2 rounded-xl border ${bgColors[color]} flex-shrink-0`}>
+          <div className="p-1.5 rounded-lg text-slate-400 bg-slate-50 border">
             <Icon className="h-4 w-4" />
           </div>
         </div>
 
-        {trend && (
-          <div className="flex items-center gap-1.5 mt-2">
-            {isPositive ? (
-              <span className="text-[10px] text-emerald-600 font-black flex items-center bg-emerald-50 px-1.5 py-0.5 rounded-sm">
-                <TrendingUp className="h-3 w-3 mr-0.5 inline" /> {trend}
-              </span>
-            ) : (
-              <span className="text-[10px] text-rose-600 font-black flex items-center bg-rose-50 px-1.5 py-0.5 rounded-sm">
-                <TrendingDown className="h-3 w-3 mr-0.5 inline" /> {trend}
-              </span>
-            )}
-            {subtext && <span className="text-[9px] text-slate-400 font-bold truncate">{subtext}</span>}
-          </div>
-        )}
-        {!trend && subtext && (
-          <div className="text-[9px] text-slate-400 font-bold mt-2 truncate">
-            {subtext}
-          </div>
-        )}
+        <div className="flex items-center gap-1 mt-2 text-[9px] font-bold">
+          {isPositive ? (
+            <span className="text-emerald-600 flex items-center">
+              <TrendingUp className="h-3 w-3 mr-0.5" /> {trend}
+            </span>
+          ) : (
+            <span className="text-rose-600 flex items-center">
+              <TrendingDown className="h-3 w-3 mr-0.5" /> {trend}
+            </span>
+          )}
+        </div>
       </CardContent>
     </Card>
   );
