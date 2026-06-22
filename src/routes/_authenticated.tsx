@@ -71,31 +71,32 @@ const allNav: {
 const makeVariants = (dir: "up" | "down") => ({
   initial: {
     opacity: 0,
-    y: dir === "down" ? 60 : -60,
-    scale: 0.97,
-    filter: "blur(8px)",
+    y: dir === "down" ? 150 : -150,
+    scale: 0.96,
+    rotateX: dir === "down" ? -8 : 8,
   },
   animate: {
     opacity: 1,
     y: 0,
     scale: 1,
-    filter: "blur(0px)",
+    rotateX: 0,
     transition: {
-      duration: 0.65,
-      ease: [0.76, 0, 0.24, 1],
+      duration: 1.0,
+      ease: [0.16, 1, 0.3, 1], // Smooth premium cubic-bezier easing
     },
   },
   exit: {
     opacity: 0,
-    y: dir === "down" ? -50 : 50,
-    scale: 0.97,
-    filter: "blur(6px)",
+    y: dir === "down" ? -150 : 150,
+    scale: 0.96,
+    rotateX: dir === "down" ? 8 : -8,
     transition: {
-      duration: 0.42,
-      ease: [0.76, 0, 0.24, 1],
+      duration: 1.0,
+      ease: [0.16, 1, 0.3, 1],
     },
   },
 });
+
 
 function Layout() {
   const navigate  = useNavigate();
@@ -170,8 +171,9 @@ function Layout() {
   useEffect(() => { navigateRef.current = navigate; });
   useEffect(() => { scrollEnabledRef.current = scrollNavEnabled; });
 
-  const COOLDOWN  = 650;
+  const COOLDOWN  = 1100; // Block scroll inputs during 1s animation transition
   const DELTA_MIN = 30; // reduzido — mais sensível
+
 
   // navigateByScroll usa apenas refs — sem dependências de closure stale
   const navigateByScroll = useCallback((direction: "prev" | "next") => {
@@ -551,7 +553,7 @@ function Layout() {
           </header>
 
           {/* ── Conteúdo com Framer Motion AnimatePresence ── */}
-          <main className="flex-1 relative overflow-hidden">
+          <main className="flex-1 relative overflow-hidden" style={{ perspective: "1200px" }}>
             <AnimatePresence mode="popLayout" initial={false}>
               <motion.div
                 key={pathname}
@@ -559,6 +561,7 @@ function Layout() {
                 initial="initial"
                 animate="animate"
                 exit="exit"
+                style={{ transformStyle: "preserve-3d" }}
                 className="absolute inset-0 overflow-y-auto"
               >
                 <div className="p-4 pb-24 lg:p-8 lg:pb-28">
@@ -567,49 +570,6 @@ function Layout() {
               </motion.div>
             </AnimatePresence>
           </main>
-
-          {/* ── Controles flutuantes igloo-style ── */}
-          {scrollNavEnabled && nav.length > 0 && (
-            <div className="fixed right-5 bottom-6 z-40 flex flex-col items-center gap-3">
-              <button
-                disabled={!hasPrev}
-                onClick={() => { setTransDir("up"); navigateByScroll("prev"); }}
-                className="igloo-nav-btn"
-                title="Página anterior"
-              >
-                <ChevronUp className="h-4 w-4" />
-              </button>
-
-              <div className="flex flex-col items-center gap-[6px]">
-                {nav.map((n, i) => (
-                  <button
-                    key={n.to}
-                    onClick={() => {
-                      setTransDir(i >= currentIndex ? "down" : "up");
-                      navigateByScroll(i > currentIndex ? "next" : "prev");
-                      navigateRef.current({ to: n.to });
-                    }}
-                    title={n.label}
-                    className={cn(
-                      "igloo-dot relative group",
-                      i === currentIndex && "igloo-dot-active",
-                    )}
-                  >
-                    <span className="igloo-dot-label">{n.label}</span>
-                  </button>
-                ))}
-              </div>
-
-              <button
-                disabled={!hasNext}
-                onClick={() => { setTransDir("down"); navigateByScroll("next"); }}
-                className="igloo-nav-btn"
-                title="Próxima página"
-              >
-                <ChevronDown className="h-4 w-4" />
-              </button>
-            </div>
-          )}
 
           {/* Scroll hint */}
           {scrollNavEnabled && hasNext && (
