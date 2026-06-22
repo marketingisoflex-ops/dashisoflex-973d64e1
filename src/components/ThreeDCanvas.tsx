@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { 
   Box, 
@@ -26,7 +26,15 @@ import {
   Wrench,
   Camera,
   Layers3,
-  Undo
+  Undo,
+  Maximize2,
+  Minimize2,
+  Play,
+  Settings,
+  List,
+  Compass,
+  FileCode,
+  Info
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -76,7 +84,7 @@ export function ThreeDCanvas() {
   const [components, setComponents] = useState<ParametricComponent[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [savedProjects, setSavedProjects] = useState<SavedProject[]>([]);
-  const [currentProjectName, setCurrentProjectName] = useState("Projeto Isoflex Sem Nome");
+  const [currentProjectName, setCurrentProjectName] = useState("Projeto Isoflex");
 
   // Grid / Snap Configuration
   const [snapEnabled, setSnapEnabled] = useState(true);
@@ -85,6 +93,9 @@ export function ThreeDCanvas() {
   
   // Selected component edit state
   const [selectedComp, setSelectedComp] = useState<ParametricComponent | null>(null);
+
+  // Active properties tab: 'object' | 'parametric' | 'material'
+  const [propertiesTab, setPropertiesTab] = useState<"object" | "parametric" | "material">("object");
 
   // Three.js instances refs
   const sceneRef = useRef<any>(null);
@@ -95,6 +106,7 @@ export function ThreeDCanvas() {
   const mouseRef = useRef<any>(null);
   const objectsMapRef = useRef<Map<string, any>>(new Map());
   const gridHelperRef = useRef<any>(null);
+  const selectionHelperRef = useRef<any>(null);
 
   // Colors Palette Isoflex
   const isoflexColors = [
@@ -154,15 +166,33 @@ export function ThreeDCanvas() {
     };
   }, []);
 
-  // Update parameters fields of selected component when selection changes
+  // Update selection box and active parameters on component click
   useEffect(() => {
+    const THREE = window.THREE;
+    if (!THREE || !sceneRef.current) return;
+
     if (selectedId) {
       const comp = components.find(c => c.id === selectedId);
       if (comp) {
         setSelectedComp(comp);
       }
+
+      // Update Selection Orange Box Highlight (Blender style)
+      const selectedMesh = objectsMapRef.current.get(selectedId);
+      if (selectedMesh) {
+        if (selectionHelperRef.current) {
+          sceneRef.current.remove(selectionHelperRef.current);
+        }
+        const boxHelper = new THREE.BoxHelper(selectedMesh, 0xf27b13); // Blender Orange
+        sceneRef.current.add(boxHelper);
+        selectionHelperRef.current = boxHelper;
+      }
     } else {
       setSelectedComp(null);
+      if (selectionHelperRef.current && sceneRef.current) {
+        sceneRef.current.remove(selectionHelperRef.current);
+        selectionHelperRef.current = null;
+      }
     }
   }, [selectedId, components]);
 
@@ -174,7 +204,7 @@ export function ThreeDCanvas() {
     
     // Scene
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color("#0f172a"); // Charcoal/Dark CAD backdrop
+    scene.background = new THREE.Color("#282828"); // Blender Viewport Grey
     sceneRef.current = scene;
 
     // Camera
@@ -182,7 +212,7 @@ export function ThreeDCanvas() {
     camera.position.set(4, 3, 5);
     cameraRef.current = camera;
 
-    // Renderer (with preserveDrawingBuffer: true for PDF snapshots)
+    // Renderer
     const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
     renderer.setPixelRatio(window.devicePixelRatio);
@@ -194,22 +224,22 @@ export function ThreeDCanvas() {
     rendererRef.current = renderer;
 
     // Lights
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
     scene.add(ambientLight);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 0.7);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
     dirLight.position.set(10, 20, 10);
     dirLight.castShadow = true;
     dirLight.shadow.mapSize.width = 1024;
     dirLight.shadow.mapSize.height = 1024;
     scene.add(dirLight);
 
-    const dirLight2 = new THREE.DirectionalLight(0x3b82f6, 0.3);
+    const dirLight2 = new THREE.DirectionalLight(0x3b82f6, 0.2);
     dirLight2.position.set(-10, 10, -10);
     scene.add(dirLight2);
 
-    // Grid Helper
-    const gridHelper = new THREE.GridHelper(20, 20, 0x3b82f6, 0x334155);
+    // Grid Helper (Blender Style)
+    const gridHelper = new THREE.GridHelper(30, 30, 0x444444, 0x353535);
     gridHelper.position.y = 0;
     scene.add(gridHelper);
     gridHelperRef.current = gridHelper;
@@ -218,7 +248,7 @@ export function ThreeDCanvas() {
     const controls = new THREE.OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
     controls.dampingFactor = 0.05;
-    controls.maxPolarAngle = Math.PI / 2 - 0.02; // Keep camera above grid
+    controls.maxPolarAngle = Math.PI / 2 - 0.01;
     controlsRef.current = controls;
 
     // Raycasting & Mouse setup
@@ -264,6 +294,13 @@ export function ThreeDCanvas() {
     const animate = () => {
       requestAnimationFrame(animate);
       if (controlsRef.current) controlsRef.current.update();
+      
+      // Keep Selection BoxHelper updated with moves/scales
+      if (selectionHelperRef.current && selectedId) {
+        const mesh = objectsMapRef.current.get(selectedId);
+        if (mesh) selectionHelperRef.current.update(mesh);
+      }
+
       if (rendererRef.current && sceneRef.current && cameraRef.current) {
         rendererRef.current.render(sceneRef.current, cameraRef.current);
       }
@@ -309,6 +346,16 @@ export function ThreeDCanvas() {
     const THREE = window.THREE;
     if (!THREE || !sceneRef.current) return;
 
+    // Skip rebuild for imported GLB structures since they are loaded once
+    if (comp.type === "GLB") {
+      const glbMesh = objectsMapRef.current.get(comp.id);
+      if (glbMesh) {
+        glbMesh.position.set(comp.posX / 1000, comp.posY / 1000, comp.posZ / 1000);
+        glbMesh.rotation.y = (comp.rotY * Math.PI) / 180;
+      }
+      return;
+    }
+
     // Remove old mesh
     const oldMesh = objectsMapRef.current.get(comp.id);
     if (oldMesh) {
@@ -326,7 +373,6 @@ export function ThreeDCanvas() {
     const steelMat = getSteelMaterial(THREE, comp.color);
     const darkSteelMat = getSteelMaterial(THREE, "#334155");
     const woodMat = getWoodMaterial(THREE);
-    const plasticMat = getPlasticMaterial(THREE, "#ef4444"); // Red bin boxes
 
     if (comp.type === "Bancada") {
       // 1. Tabletop
@@ -627,7 +673,7 @@ export function ThreeDCanvas() {
     
     // Defer three rebuild after state update
     setTimeout(() => rebuildThreeMesh(newComp), 50);
-    toast.success(`${type} adicionado com sucesso!`);
+    toast.success(`${type} adicionado à cena Blender!`);
   };
 
   // Helper snap algorithm
@@ -646,12 +692,79 @@ export function ThreeDCanvas() {
           updated[prop] = snapCoordinate(Number(value), snapInterval);
         }
         
-        // Perform 3D rebuild
+        // Perform 3D rebuild / updates
         setTimeout(() => rebuildThreeMesh(updated), 20);
         return updated;
       }
       return c;
     }));
+  };
+
+  // GLB / GLTF Import Mechanism
+  const handleGlbUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !window.THREE || !sceneRef.current) return;
+    
+    const THREE = window.THREE;
+    const reader = new FileReader();
+    
+    reader.onload = function(evt) {
+      const contents = evt.target?.result as ArrayBuffer;
+      const loader = new THREE.GLTFLoader();
+      
+      loader.parse(contents, "", (gltf: any) => {
+        const model = gltf.scene;
+        
+        // Scale and center appropriately
+        const box = new THREE.Box3().setFromObject(model);
+        const size = box.getSize(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z);
+        if (maxDim > 10) {
+          const scaleFactor = 3 / maxDim;
+          model.scale.set(scaleFactor, scaleFactor, scaleFactor);
+        }
+        
+        const id = `glb_${Date.now()}`;
+        model.name = id;
+        
+        // Add casts/receives shadows
+        model.traverse((child: any) => {
+          if (child.isMesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+        
+        sceneRef.current.add(model);
+        objectsMapRef.current.set(id, model);
+        
+        const newComp: ParametricComponent = {
+          id,
+          type: "GLB",
+          name: file.name.replace(/\.[^/.]+$/, ""), // remove extension
+          width: Math.round(size.x * 1000),
+          height: Math.round(size.y * 1000),
+          depth: Math.round(size.z * 1000),
+          posX: 0,
+          posY: 0,
+          posZ: 0,
+          rotY: 0,
+          color: "#ffffff"
+        };
+        
+        setComponents(prev => [...prev, newComp]);
+        setSelectedId(id);
+        toast.success(`Importado: ${newComp.name}`);
+      }, (err: any) => {
+        console.error(err);
+        toast.error("Erro ao importar GLB.");
+      });
+    };
+    reader.readAsArrayBuffer(file);
+  };
+
+  const triggerFileInput = () => {
+    fileInputRef.current?.click();
   };
 
   // Delete selected item
@@ -667,7 +780,7 @@ export function ThreeDCanvas() {
   };
 
   const clearAll = () => {
-    if (confirm("Deseja realmente limpar toda a área de trabalho?")) {
+    if (confirm("Deseja realmente limpar toda a área de trabalho do Blender?")) {
       objectsMapRef.current.forEach((obj) => {
         if (sceneRef.current) sceneRef.current.remove(obj);
       });
@@ -749,18 +862,19 @@ export function ThreeDCanvas() {
     let metalShelves = 0;
 
     components.forEach(comp => {
+      if (comp.type === "GLB") return; // Skip calculation for imported glb files
+
       const w = comp.width / 1000;
       const h = comp.height / 1000;
       const d = comp.depth / 1000;
 
       if (comp.type === "Bancada") {
-        // Legs (4 * leg height) + frames
         steelMeters += 4 * (h - 0.03) + 2 * w + 2 * d + 0.8; 
         woodSqMeters += w * d;
         connectors += 16;
         if (comp.hasPegboard) {
-          steelMeters += 2 * 0.6 + w; // structural frame pegboard
-          woodSqMeters += w * 0.2; // wood shelf on pegboard
+          steelMeters += 2 * 0.6 + w;
+          woodSqMeters += w * 0.2;
           connectors += 4;
         }
         if (comp.hasDrawers) {
@@ -768,21 +882,21 @@ export function ThreeDCanvas() {
         }
       } else if (comp.type === "FlowRack") {
         const sh = comp.shelvesCount || 3;
-        steelMeters += 4 * h + 2 * sh * w + 2 * sh * d; // Uprights + shelf borders
-        plasticBins += sh * 6; // 6 bins per level standard
+        steelMeters += 4 * h + 2 * sh * w + 2 * sh * d;
+        plasticBins += sh * 6;
         connectors += 24;
       } else if (comp.type === "Carrinho") {
         const sh = comp.shelfCount || 2;
-        steelMeters += 4 * h + 2 * d; // frame pushbar
+        steelMeters += 4 * h + 2 * d;
         metalShelves += sh;
         wheels += 4;
         connectors += 12;
       } else if (comp.type === "Estante") {
         const lvls = comp.levelCount || 4;
-        steelMeters += 4 * h; // L-shaped uprights
+        steelMeters += 4 * h;
         metalShelves += lvls;
         connectors += lvls * 8;
-        steelMeters += Math.sqrt(w * w + h * h) * 2; // cross braces
+        steelMeters += Math.sqrt(w * w + h * h) * 2;
       }
     });
 
@@ -803,17 +917,17 @@ export function ThreeDCanvas() {
 
   const bom = calculateBOM();
 
-  // Export 3D as GLTF
+  // Export 3D as GLTF/GLB (Including imported GLB models)
   const handleExportGLTF = (binary: boolean = true) => {
     const THREE = window.THREE;
     if (!THREE || !sceneRef.current) {
-      toast.error("Três.js não inicializado.");
+      toast.error("Three.js não inicializado.");
       return;
     }
 
     const exporter = new THREE.GLTFExporter();
     
-    // Group all user-created meshes to export clean geometry (omit lighting, helper grids)
+    // Group all user-created and uploaded objects
     const exportGroup = new THREE.Group();
     objectsMapRef.current.forEach((obj) => {
       exportGroup.add(obj.clone());
@@ -828,7 +942,7 @@ export function ThreeDCanvas() {
           link.href = URL.createObjectURL(blob);
           link.download = `${currentProjectName.toLowerCase().replace(/\s+/g, "-")}.glb`;
           link.click();
-          toast.success("GLB binário baixado!");
+          toast.success("Modelo GLB Exportado!");
         } else {
           const output = JSON.stringify(result, null, 2);
           const blob = new Blob([output], { type: "application/json" });
@@ -836,12 +950,12 @@ export function ThreeDCanvas() {
           link.href = URL.createObjectURL(blob);
           link.download = `${currentProjectName.toLowerCase().replace(/\s+/g, "-")}.gltf`;
           link.click();
-          toast.success("GLTF estruturado baixado!");
+          toast.success("Modelo GLTF Exportado!");
         }
       },
       (err: any) => {
         console.error("Export failure:", err);
-        toast.error("Ocorreu um erro ao exportar o modelo 3D.");
+        toast.error("Ocorreu um erro ao exportar.");
       },
       { binary }
     );
@@ -854,10 +968,7 @@ export function ThreeDCanvas() {
       return;
     }
 
-    // Capture current 3D canvas snapshot
     const imgData = rendererRef.current.domElement.toDataURL("image/png");
-    
-    // Create new print window
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
       toast.error("Falha ao abrir visualizador de impressão. Permita popups.");
@@ -870,178 +981,51 @@ export function ThreeDCanvas() {
     const htmlContent = `
       <html>
         <head>
-          <title>Isoflex - Folha Técnica de Engenharia</title>
+          <title>Blender Isoflex - Technical Report</title>
           <style>
             @media print {
-              body {
-                background: white;
-                color: black;
-              }
+              body { background: white; color: black; }
               .no-print { display: none; }
             }
-            body {
-              font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-              margin: 30px;
-              color: #1e293b;
-              background-color: #ffffff;
-            }
-            .header-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 25px;
-            }
-            .header-table td {
-              border: 2px solid #0f172a;
-              padding: 12px;
-            }
-            .logo-title {
-              font-size: 24px;
-              font-weight: 900;
-              color: #1a4fd6;
-              letter-spacing: 1px;
-            }
-            .doc-title {
-              font-size: 18px;
-              font-weight: 700;
-              text-transform: uppercase;
-            }
-            .viewport-container {
-              border: 2px solid #0f172a;
-              text-align: center;
-              padding: 15px;
-              margin-bottom: 25px;
-              background: #f8fafc;
-            }
-            .viewport-img {
-              max-width: 100%;
-              max-height: 400px;
-              object-fit: contain;
-            }
-            .bom-title {
-              font-size: 14px;
-              font-weight: 800;
-              text-transform: uppercase;
-              margin-bottom: 10px;
-              border-bottom: 2px solid #0f172a;
-              padding-bottom: 4px;
-            }
-            .bom-table {
-              width: 100%;
-              border-collapse: collapse;
-              margin-bottom: 30px;
-            }
-            .bom-table th, .bom-table td {
-              border: 1px solid #94a3b8;
-              padding: 8px 12px;
-              text-align: left;
-              font-size: 12px;
-            }
-            .bom-table th {
-              background-color: #f1f5f9;
-              font-weight: 700;
-            }
-            .legend-block {
-              font-size: 10px;
-              color: #64748b;
-              margin-top: 50px;
-              text-align: center;
-              border-top: 1px dashed #cbd5e1;
-              padding-top: 15px;
-            }
-            .btn-print {
-              background-color: #1a4fd6;
-              color: white;
-              border: none;
-              padding: 10px 20px;
-              font-weight: bold;
-              border-radius: 6px;
-              cursor: pointer;
-              margin-bottom: 20px;
-            }
+            body { font-family: 'Segoe UI', sans-serif; margin: 30px; color: #1e293b; }
+            .header-table { width: 100%; border-collapse: collapse; margin-bottom: 25px; }
+            .header-table td { border: 2px solid #f27b13; padding: 12px; }
+            .logo-title { font-size: 24px; font-weight: 900; color: #f27b13; }
+            .doc-title { font-size: 18px; font-weight: 700; text-transform: uppercase; }
+            .viewport-container { border: 2px solid #334155; text-align: center; padding: 15px; margin-bottom: 25px; background: #282828; }
+            .viewport-img { max-width: 100%; max-height: 400px; }
+            .bom-title { font-size: 14px; font-weight: 800; text-transform: uppercase; margin-bottom: 10px; border-bottom: 2px solid #f27b13; padding-bottom: 4px; }
+            .bom-table { width: 100%; border-collapse: collapse; }
+            .bom-table th, .bom-table td { border: 1px solid #94a3b8; padding: 8px 12px; font-size: 12px; }
+            .bom-table th { background-color: #f1f5f9; }
           </style>
         </head>
         <body>
-          <button class="btn-print no-print" onclick="window.print()">Imprimir / Salvar como PDF</button>
-          
+          <button class="no-print" style="background:#f27b13;color:white;border:none;padding:8px 16px;cursor:pointer;font-weight:bold;margin-bottom:15px;" onclick="window.print()">Imprimir PDF</button>
           <table class="header-table">
             <tr>
-              <td width="30%" align="center">
-                <div class="logo-title">ISOFLEX</div>
-                <div style="font-size: 9px; font-weight: bold; margin-top: 4px;">ORGANIZAÇÃO INDUSTRIAL</div>
-              </td>
-              <td width="45%">
-                <div class="doc-title">${currentProjectName}</div>
-                <div style="font-size: 11px; margin-top: 6px;">FOLHA DE ESPECIFICAÇÃO TÉCNICA E CAD</div>
-              </td>
-              <td width="25%" style="font-size: 11px; line-height: 1.6;">
-                <strong>Data:</strong> ${dateStr}<br/>
-                <strong>Status:</strong> Aprovado p/ Fabricação<br/>
-                <strong>Autor:</strong> Configurator 3D
-              </td>
+              <td><div class="logo-title">BLENDER ISOFLEX</div></td>
+              <td><div class="doc-title">${currentProjectName}</div></td>
+              <td><strong>Data:</strong> ${dateStr}</td>
             </tr>
           </table>
-
           <div class="viewport-container">
-            <img class="viewport-img" src="${imgData}" alt="Vista CAD 3D" />
-            <div style="font-size: 10px; color: #64748b; margin-top: 8px;">Modelo Isométrico do Equipamento Configurado</div>
+            <img class="viewport-img" src="${imgData}" />
           </div>
-
-          <div class="bom-title">Lista Geral de Materiais (BOM)</div>
+          <div class="bom-title">BOM - Lista de Materiais</div>
           <table class="bom-table">
             <thead>
-              <tr>
-                <th>Item / Insumo</th>
-                <th>Especificação Industrial</th>
-                <th>Quantidade Estimada</th>
-              </tr>
+              <tr><th>Item</th><th>Quantidade</th></tr>
             </thead>
             <tbody>
-              <tr>
-                <td>Perfis Tubulares de Aço</td>
-                <td>Aço Estrutural Carbono / Pintura Epóxi</td>
-                <td>${bomDetails.steelMeters} metros lineares</td>
-              </tr>
-              <tr>
-                <td>Placa de Tampo/Divisória</td>
-                <td>MDF Revestido Melamínico / Borracha</td>
-                <td>${bomDetails.woodSqMeters} m²</td>
-              </tr>
-              <tr>
-                <td>Prateleiras Metálicas</td>
-                <td>Chapa Conformada Isoflex</td>
-                <td>${bomDetails.metalShelves} unidades</td>
-              </tr>
-              <tr>
-                <td>Gavetas e Pegboard</td>
-                <td>Sistema de Encaixe com Trilhos e Ganchos</td>
-                <td>Simulado na montagem</td>
-              </tr>
-              <tr>
-                <td>Caixas Plásticas Bin</td>
-                <td>Polipropileno de Alta Densidade</td>
-                <td>${bomDetails.plasticBins} peças</td>
-              </tr>
-              <tr>
-                <td>Rodízios Giratórios</td>
-                <td>Rodas PU Reforçadas (Rolamento de Esfera)</td>
-                <td>${bomDetails.wheels} unidades</td>
-              </tr>
-              <tr>
-                <td>Conectores e Parafusos</td>
-                <td>Fixadores Rápidos de Canto</td>
-                <td>${bomDetails.connectors} unidades</td>
-              </tr>
-              <tr style="font-weight: bold; background-color: #f8fafc;">
-                <td>Estimativa de Peso Geral</td>
-                <td>Calculado com base nas densidades</td>
-                <td>~${bomDetails.weightKg} kg</td>
-              </tr>
+              <tr><td>Perfis Metálicos</td><td>${bomDetails.steelMeters} m</td></tr>
+              <tr><td>MDF</td><td>${bomDetails.woodSqMeters} m²</td></tr>
+              <tr><td>Prateleiras Metálicas</td><td>${bomDetails.metalShelves} un</td></tr>
+              <tr><td>Bins Plásticos</td><td>${bomDetails.plasticBins} un</td></tr>
+              <tr><td>Rodízios</td><td>${bomDetails.wheels} un</td></tr>
+              <tr><td>Peso Geral</td><td>~${bomDetails.weightKg} kg</td></tr>
             </tbody>
           </table>
-
-          <div class="legend-block">
-            Isoflex Organização do Trabalho Ltda. • Desenho gerado automaticamente pelo modelador paramétrico. • Todos os direitos reservados.
-          </div>
         </body>
       </html>
     `;
@@ -1050,12 +1034,8 @@ export function ThreeDCanvas() {
     printWindow.document.close();
   };
 
-  // Camera views preset
   const setCameraPreset = (view: "front" | "top" | "side" | "isometric") => {
     if (!cameraRef.current || !controlsRef.current) return;
-    const THREE = window.THREE;
-    if (!THREE) return;
-
     controlsRef.current.reset();
     if (view === "front") {
       cameraRef.current.position.set(0, 1.5, 4);
@@ -1070,445 +1050,485 @@ export function ThreeDCanvas() {
   };
 
   return (
-    <div className="grid gap-6 lg:grid-cols-4 h-[750px] overflow-hidden select-none text-slate-100">
+    <div className="flex flex-col h-[750px] bg-[#1e1e1e] text-[#c4c4c4] rounded-2xl overflow-hidden border border-[#2e2e2e] shadow-2xl font-mono text-xs select-none">
       
-      {/* Sidebar - Component Library and Settings */}
-      <div className="lg:col-span-1 flex flex-col gap-4 overflow-y-auto pr-1 bg-slate-900/50 p-3 rounded-2xl border border-slate-800">
-        
-        {/* Project Name Setup */}
-        <div className="space-y-1 bg-slate-950/70 p-3 rounded-xl border border-slate-800">
-          <Label className="text-[10px] uppercase font-bold text-slate-400">Nome do Projeto</Label>
-          <div className="flex gap-2">
-            <Input 
-              value={currentProjectName}
-              onChange={(e) => setCurrentProjectName(e.target.value)}
-              className="bg-slate-900 border-slate-700 text-xs font-semibold h-8 text-slate-100"
-            />
-            <Button size="xs" className="h-8 bg-blue-600 hover:bg-blue-700" onClick={saveProject}>
-              <Save className="h-3.5 w-3.5" />
-            </Button>
+      {/* Hidden file uploader for GLB */}
+      <input 
+        type="file" 
+        ref={fileInputRef} 
+        onChange={handleGlbUpload} 
+        accept=".glb,.gltf" 
+        className="hidden" 
+      />
+
+      {/* 1. Blender Style Header Menu Bar */}
+      <div className="h-9 bg-[#2e2e2e] border-b border-[#1a1a1a] flex items-center px-4 justify-between select-none">
+        <div className="flex items-center gap-6">
+          {/* Logo icon Blender Style */}
+          <div className="flex items-center gap-1.5 font-black text-white">
+            <div className="h-4 w-4 bg-[#f27b13] rounded-full flex items-center justify-center text-[10px] text-white">B</div>
+            <span className="tracking-tight text-slate-100">Blender Isoflex 3D</span>
+          </div>
+
+          {/* Menus */}
+          <div className="flex gap-4 text-[#a3a3a3]">
+            <div className="group relative cursor-pointer hover:text-white py-1">
+              File
+              <div className="absolute top-7 left-0 bg-[#2e2e2e] border border-[#1a1a1a] rounded shadow-xl hidden group-hover:block z-30 w-44 py-1">
+                <div className="px-3 py-1.5 hover:bg-[#f27b13] hover:text-white" onClick={saveProject}>Save Project</div>
+                <div className="px-3 py-1.5 hover:bg-[#f27b13] hover:text-white" onClick={triggerFileInput}>Import GLB/GLTF...</div>
+                <div className="px-3 py-1.5 hover:bg-[#f27b13] hover:text-white" onClick={() => handleExportGLTF(true)}>Export GLB (.glb)</div>
+                <div className="px-3 py-1.5 hover:bg-[#f27b13] hover:text-white" onClick={() => handleExportGLTF(false)}>Export GLTF (.gltf)</div>
+                <hr className="border-[#1a1a1a] my-1"/>
+                <div className="px-3 py-1.5 hover:bg-rose-600 hover:text-white text-rose-400" onClick={clearAll}>New Scene</div>
+              </div>
+            </div>
+            
+            <div className="group relative cursor-pointer hover:text-white py-1">
+              Add
+              <div className="absolute top-7 left-0 bg-[#2e2e2e] border border-[#1a1a1a] rounded shadow-xl hidden group-hover:block z-30 w-44 py-1">
+                <div className="px-3 py-1 hover:bg-[#f27b13] hover:text-white" onClick={() => addComponent("Bancada")}>Mesh: Bancada</div>
+                <div className="px-3 py-1 hover:bg-[#f27b13] hover:text-white" onClick={() => addComponent("FlowRack")}>Mesh: Flow Rack</div>
+                <div className="px-3 py-1 hover:bg-[#f27b13] hover:text-white" onClick={() => addComponent("Carrinho")}>Mesh: Carrinho</div>
+                <div className="px-3 py-1 hover:bg-[#f27b13] hover:text-white" onClick={() => addComponent("Estante")}>Mesh: Estante</div>
+              </div>
+            </div>
+
+            <div className="cursor-pointer hover:text-white py-1" onClick={handleExportPDF}>Render</div>
           </div>
         </div>
 
-        {/* Add Equipment Panel */}
-        <Card className="bg-slate-950/40 border-slate-800 shadow-sm shrink-0">
-          <CardHeader className="p-3 pb-1">
-            <CardTitle className="text-xs font-bold text-slate-400 uppercase tracking-wider">Biblioteca Isoflex</CardTitle>
-          </CardHeader>
-          <CardContent className="p-3 pt-1 space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <Button size="xs" variant="outline" className="flex flex-col h-14 text-[9px] gap-1 bg-slate-900/90 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white" onClick={() => addComponent("Bancada")}>
-                <Wrench className="h-4 w-4 text-blue-500" /> Bancada
-              </Button>
-              <Button size="xs" variant="outline" className="flex flex-col h-14 text-[9px] gap-1 bg-slate-900/90 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white" onClick={() => addComponent("FlowRack")}>
-                <Layers className="h-4 w-4 text-amber-500" /> Flow Rack
-              </Button>
-              <Button size="xs" variant="outline" className="flex flex-col h-14 text-[9px] gap-1 bg-slate-900/90 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white" onClick={() => addComponent("Carrinho")}>
-                <Layers3 className="h-4 w-4 text-emerald-500" /> Carrinho
-              </Button>
-              <Button size="xs" variant="outline" className="flex flex-col h-14 text-[9px] gap-1 bg-slate-900/90 border-slate-800 text-slate-300 hover:bg-slate-800 hover:text-white" onClick={() => addComponent("Estante")}>
-                <Box className="h-4 w-4 text-purple-500" /> Estante
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Snap and Grid Controls */}
-        <div className="bg-slate-950/40 border border-slate-800 rounded-xl p-3 space-y-3">
-          <div className="flex justify-between items-center">
-            <span className="text-[10px] font-bold text-slate-400 uppercase flex items-center gap-1">
-              <Grid className="h-3.5 w-3.5" /> Encaixe Automático (Snap)
-            </span>
-            <input 
-              type="checkbox" 
-              checked={snapEnabled} 
-              onChange={() => setSnapEnabled(!snapEnabled)}
-              className="rounded bg-slate-800 border-slate-700 accent-blue-600"
-            />
-          </div>
-          {snapEnabled && (
-            <div className="space-y-1">
-              <Label className="text-[9px] text-slate-500 font-semibold uppercase">Grade de Alinhamento (mm)</Label>
-              <div className="grid grid-cols-4 gap-1.5">
-                {[50, 100, 200, 500].map((step) => (
-                  <Button 
-                    key={step} 
-                    size="xs" 
-                    variant={snapInterval === step ? "default" : "outline"} 
-                    className={`h-6 text-[9px] px-0 ${snapInterval === step ? "bg-blue-600 text-white" : "bg-slate-900 border-slate-800 text-slate-400 hover:bg-slate-800"}`}
-                    onClick={() => setSnapInterval(step)}
-                  >
-                    {step}
-                  </Button>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* Project Name Selector */}
+        <div className="flex items-center gap-2">
+          <Input 
+            value={currentProjectName}
+            onChange={(e) => setCurrentProjectName(e.target.value)}
+            className="bg-[#1e1e1e] border-[#3d3d3d] h-6 text-white text-[11px] w-48 rounded font-mono px-2 focus-visible:ring-[#f27b13]"
+          />
+          <Badge className="bg-[#f27b13]/25 text-[#f27b13] border border-[#f27b13]/40 text-[9px] px-2 py-0.5">ACTIVE</Badge>
         </div>
-
-        {/* Edit Parameter Panel (Reactive) */}
-        {selectedComp ? (
-          <Card className="bg-slate-950/60 border-slate-800 shadow-sm flex-1 flex flex-col justify-between overflow-hidden">
-            <CardHeader className="p-3 pb-1 border-b border-slate-800 flex flex-row items-center justify-between">
-              <div>
-                <CardTitle className="text-xs font-bold text-blue-400">{selectedComp.name}</CardTitle>
-                <CardDescription className="text-[9px] text-slate-500">Configuração de Medidas</CardDescription>
-              </div>
-              <Button size="icon" variant="ghost" className="h-6 w-6 text-rose-500 hover:bg-rose-950/50" onClick={() => deleteComponent(selectedComp.id)}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
-            </CardHeader>
-
-            <CardContent className="p-3 pt-3 space-y-3 overflow-y-auto flex-1">
-              {/* Dimensions (W, H, D) */}
-              <div className="space-y-1.5">
-                <Label className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                  <Maximize className="h-3 w-3" /> Dimensões (Largura, Altura, Profundidade em mm)
-                </Label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  <div>
-                    <span className="text-[8px] text-slate-500 block mb-0.5">Largura (W)</span>
-                    <Input 
-                      type="number" 
-                      value={selectedComp.width} 
-                      onChange={(e) => updateComponentProperty(selectedComp.id, "width", Number(e.target.value))} 
-                      className="h-7 text-center text-xs font-semibold bg-slate-900 border-slate-700"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-[8px] text-slate-500 block mb-0.5">Altura (H)</span>
-                    <Input 
-                      type="number" 
-                      value={selectedComp.height} 
-                      onChange={(e) => updateComponentProperty(selectedComp.id, "height", Number(e.target.value))} 
-                      className="h-7 text-center text-xs font-semibold bg-slate-900 border-slate-700"
-                    />
-                  </div>
-                  <div>
-                    <span className="text-[8px] text-slate-500 block mb-0.5">Prof. (D)</span>
-                    <Input 
-                      type="number" 
-                      value={selectedComp.depth} 
-                      onChange={(e) => updateComponentProperty(selectedComp.id, "depth", Number(e.target.value))} 
-                      className="h-7 text-center text-xs font-semibold bg-slate-900 border-slate-700"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Coordinates (X, Y, Z) */}
-              <div className="space-y-1.5">
-                <Label className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                  <Move className="h-3 w-3" /> Posição na Grade (X, Y, Z em mm)
-                </Label>
-                <div className="grid grid-cols-3 gap-1.5">
-                  <div>
-                    <Input 
-                      type="number" 
-                      step={snapInterval}
-                      value={selectedComp.posX} 
-                      onChange={(e) => updateComponentProperty(selectedComp.id, "posX", Number(e.target.value))} 
-                      className="h-7 text-center text-xs font-semibold bg-slate-900 border-slate-700"
-                    />
-                  </div>
-                  <div>
-                    <Input 
-                      type="number" 
-                      step={snapInterval}
-                      value={selectedComp.posY} 
-                      onChange={(e) => updateComponentProperty(selectedComp.id, "posY", Number(e.target.value))} 
-                      className="h-7 text-center text-xs font-semibold bg-slate-900 border-slate-700"
-                    />
-                  </div>
-                  <div>
-                    <Input 
-                      type="number" 
-                      step={snapInterval}
-                      value={selectedComp.posZ} 
-                      onChange={(e) => updateComponentProperty(selectedComp.id, "posZ", Number(e.target.value))} 
-                      className="h-7 text-center text-xs font-semibold bg-slate-900 border-slate-700"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Rotation Y */}
-              <div className="space-y-1.5">
-                <Label className="text-[9px] font-bold text-slate-400 uppercase flex items-center gap-1">
-                  <RotateCw className="h-3 w-3" /> Orientação Y ({selectedComp.rotY}°)
-                </Label>
-                <input 
-                  type="range" 
-                  min="0" 
-                  max="360" 
-                  step="45"
-                  value={selectedComp.rotY} 
-                  onChange={(e) => updateComponentProperty(selectedComp.id, "rotY", Number(e.target.value))} 
-                  className="w-full accent-blue-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                />
-              </div>
-
-              {/* Dynamic Parameter Settings */}
-              {selectedComp.type === "Bancada" && (
-                <div className="space-y-2 border-t border-slate-800 pt-2">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 text-[10px]">Painel de Ferramentas (Pegboard)</span>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedComp.hasPegboard} 
-                      onChange={(e) => updateComponentProperty(selectedComp.id, "hasPegboard", e.target.checked)}
-                      className="rounded bg-slate-900 accent-blue-600"
-                    />
-                  </div>
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 text-[10px]">Gaveteiro sob Tampo</span>
-                    <input 
-                      type="checkbox" 
-                      checked={selectedComp.hasDrawers} 
-                      onChange={(e) => updateComponentProperty(selectedComp.id, "hasDrawers", e.target.checked)}
-                      className="rounded bg-slate-900 accent-blue-600"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {selectedComp.type === "FlowRack" && (
-                <div className="space-y-2 border-t border-slate-800 pt-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-[8px] text-slate-500 block mb-0.5">Quant. Prateleiras</span>
-                      <Input 
-                        type="number" 
-                        min="2" 
-                        max="5"
-                        value={selectedComp.shelvesCount} 
-                        onChange={(e) => updateComponentProperty(selectedComp.id, "shelvesCount", Number(e.target.value))} 
-                        className="h-7 text-xs bg-slate-900 border-slate-700"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[8px] text-slate-500 block mb-0.5">Inclinação (Graus)</span>
-                      <Input 
-                        type="number" 
-                        min="0" 
-                        max="15"
-                        value={selectedComp.shelfAngle} 
-                        onChange={(e) => updateComponentProperty(selectedComp.id, "shelfAngle", Number(e.target.value))} 
-                        className="h-7 text-xs bg-slate-900 border-slate-700"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedComp.type === "Carrinho" && (
-                <div className="space-y-2 border-t border-slate-800 pt-2">
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <span className="text-[8px] text-slate-500 block mb-0.5">Quant. Níveis</span>
-                      <Input 
-                        type="number" 
-                        min="1" 
-                        max="4"
-                        value={selectedComp.shelfCount} 
-                        onChange={(e) => updateComponentProperty(selectedComp.id, "shelfCount", Number(e.target.value))} 
-                        className="h-7 text-xs bg-slate-900 border-slate-700"
-                      />
-                    </div>
-                    <div>
-                      <span className="text-[8px] text-slate-500 block mb-0.5">Diâm. Rodas (mm)</span>
-                      <Input 
-                        type="number" 
-                        min="50" 
-                        max="150"
-                        step="25"
-                        value={selectedComp.wheelsDiameter} 
-                        onChange={(e) => updateComponentProperty(selectedComp.id, "wheelsDiameter", Number(e.target.value))} 
-                        className="h-7 text-xs bg-slate-900 border-slate-700"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {selectedComp.type === "Estante" && (
-                <div className="space-y-2 border-t border-slate-800 pt-2">
-                  <div>
-                    <span className="text-[8px] text-slate-500 block mb-0.5">Prateleiras / Níveis</span>
-                    <Input 
-                      type="number" 
-                      min="2" 
-                      max="7"
-                      value={selectedComp.levelCount} 
-                      onChange={(e) => updateComponentProperty(selectedComp.id, "levelCount", Number(e.target.value))} 
-                      className="h-7 text-xs bg-slate-900 border-slate-700"
-                    />
-                  </div>
-                </div>
-              )}
-
-              {/* Isoflex paint finish colors selector */}
-              <div className="space-y-1.5 border-t border-slate-800 pt-2">
-                <Label className="text-[9px] font-bold text-slate-400 uppercase">Cor da Pintura (Padrão)</Label>
-                <div className="flex flex-wrap gap-1">
-                  {isoflexColors.map((col) => (
-                    <button 
-                      key={col.hex} 
-                      style={{ backgroundColor: col.hex }} 
-                      className={`h-5 w-5 rounded-full border border-slate-950 transition-all ${selectedComp.color === col.hex ? "ring-2 ring-blue-500 scale-110" : "opacity-80 hover:opacity-100"}`}
-                      title={col.name}
-                      onClick={() => updateComponentProperty(selectedComp.id, "color", col.hex)}
-                    />
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="bg-slate-950/40 border-slate-800 flex-1 flex flex-col justify-center items-center text-center p-4 text-slate-500">
-            <Database className="h-7 w-7 mb-2 opacity-50 text-blue-500 animate-pulse" />
-            <p className="text-[11px] font-bold">Nenhum componente selecionado</p>
-            <p className="text-[9px] text-slate-500 mt-1 max-w-[150px]">Adicione um equipamento da biblioteca ou clique nele no visualizador para configurar.</p>
-          </Card>
-        )}
       </div>
 
-      {/* Main 3D Viewport CAD layout */}
-      <div className="lg:col-span-3 flex flex-col gap-4">
+      {/* 2. Main Workspace Layout */}
+      <div className="flex-1 flex overflow-hidden">
         
-        {/* Render space */}
-        <div className="flex-1 relative rounded-2xl overflow-hidden border border-slate-800 shadow-inner bg-slate-950/80 flex flex-col min-h-[400px]">
+        {/* Left Toolbar - Mode Toggles (Blender style) */}
+        <div className="w-12 bg-[#2a2a2a] border-r border-[#1a1a1a] flex flex-col items-center py-4 gap-3 text-[#8a8a8a]">
+          <button className={`p-2 rounded-lg hover:text-white ${selectedId ? "text-[#f27b13]" : ""}`} title="Select Object">
+            <Compass className="h-5 w-5" />
+          </button>
+          <button className="p-2 rounded-lg hover:text-white" title="Translate / Move">
+            <Move className="h-5 w-5" />
+          </button>
+          <button className="p-2 rounded-lg hover:text-white" title="Rotate">
+            <RotateCw className="h-5 w-5" />
+          </button>
+          <button className="p-2 rounded-lg hover:text-white" title="Scale">
+            <Maximize className="h-5 w-5" />
+          </button>
+          <span className="w-6 h-[1px] bg-[#3d3d3d] my-1"></span>
+          <button className="p-2 rounded-lg hover:text-white text-[#ef4444]" onClick={clearAll} title="Limpar Cena">
+            <Trash2 className="h-5 w-5" />
+          </button>
+        </div>
+
+        {/* Middle Area: Viewport Canvas */}
+        <div className="flex-1 flex flex-col bg-[#3d3d3d] relative">
           
-          {/* Overlay Info & Camera Angles Toolbar */}
-          <div className="absolute top-3 left-3 z-10 flex gap-2">
-            <Badge className="bg-slate-900/80 backdrop-blur-xs text-blue-400 text-[10px] border border-slate-800">
-              CAD viewport
-            </Badge>
-            <div className="flex gap-1 bg-slate-900/85 backdrop-blur-xs px-2 py-0.5 rounded-lg border border-slate-800 text-[9px] font-bold text-slate-400">
-              <span>W: {selectedComp?.width || 0}mm</span>
-              <span className="text-slate-600">|</span>
-              <span>H: {selectedComp?.height || 0}mm</span>
-            </div>
+          {/* Top Viewport Header */}
+          <div className="absolute top-2 left-2 z-10 flex gap-2">
+            <span className="bg-[#1e1e1e]/90 text-white px-2 py-0.5 rounded text-[10px] border border-[#2e2e2e]">User Perspective</span>
+            {snapEnabled && (
+              <span className="bg-[#f27b13]/20 text-[#f27b13] px-2 py-0.5 rounded text-[10px] border border-[#f27b13]/40">Snap: {snapInterval}mm</span>
+            )}
           </div>
 
-          {/* Preset Camera Views */}
-          <div className="absolute top-3 right-3 z-10 flex gap-1 bg-slate-950/90 p-1 rounded-xl border border-slate-800">
-            <Button size="xs" variant="ghost" className="h-6 text-[9px] text-slate-400 hover:text-white" onClick={() => setCameraPreset("isometric")}>ISO</Button>
-            <Button size="xs" variant="ghost" className="h-6 text-[9px] text-slate-400 hover:text-white" onClick={() => setCameraPreset("top")}>Topo</Button>
-            <Button size="xs" variant="ghost" className="h-6 text-[9px] text-slate-400 hover:text-white" onClick={() => setCameraPreset("front")}>Frente</Button>
-            <Button size="xs" variant="ghost" className="h-6 text-[9px] text-slate-400 hover:text-white" onClick={() => setCameraPreset("side")}>Lateral</Button>
-            <span className="w-[1px] bg-slate-800 mx-1"></span>
-            <Button size="xs" variant="ghost" className="h-6 px-1 text-slate-400 hover:text-white" onClick={toggleGrid} title="Grade">
+          {/* Top Right Gizmo & Snap controls */}
+          <div className="absolute top-2 right-2 z-10 flex gap-1.5 bg-[#2e2e2e]/90 p-1 rounded-lg border border-[#1a1a1a]">
+            <Button size="xs" variant="ghost" className="h-5 text-[9px] text-[#c4c4c4] hover:text-white" onClick={() => setCameraPreset("isometric")}>ISO</Button>
+            <Button size="xs" variant="ghost" className="h-5 text-[9px] text-[#c4c4c4] hover:text-white" onClick={() => setCameraPreset("top")}>TOP</Button>
+            <Button size="xs" variant="ghost" className="h-5 text-[9px] text-[#c4c4c4] hover:text-white" onClick={() => setCameraPreset("front")}>FRONT</Button>
+            <span className="w-[1px] bg-[#3d3d3d] mx-0.5"></span>
+            <Button size="xs" variant="ghost" className={`h-5 px-1 ${showGrid ? "text-[#f27b13]" : "text-[#c4c4c4]"}`} onClick={toggleGrid} title="Grade">
               <Grid className="h-3.5 w-3.5" />
             </Button>
           </div>
 
-          {/* Loader/Spinner */}
+          {/* Loader */}
           {loading && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-slate-950 z-20">
-              <RefreshCw className="h-8 w-8 text-blue-500 animate-spin mb-2" />
-              <p className="text-xs font-bold text-slate-500">Montando engine paramétrico...</p>
+            <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#1e1e1e] z-20">
+              <RefreshCw className="h-8 w-8 text-[#f27b13] animate-spin mb-2" />
+              <p className="text-xs text-[#a3a3a3]">Inicializando Blender 3D Engine...</p>
             </div>
           )}
 
-          {/* Real three.js container */}
+          {/* Canvas */}
           <div ref={containerRef} className="w-full flex-1" />
 
-          {/* Quick status bar */}
-          <div className="bg-slate-900 border-t border-slate-800 px-4 py-2 flex justify-between items-center text-[10px] text-slate-500 font-medium select-none shrink-0">
-            <span className="flex items-center gap-1 text-[9px]">
-              <Grid className="h-3.5 w-3.5 text-blue-600" /> Botão Esquerdo (Girar) • Direito (Arrastar) • Scroll (Zoom) • Clique (Selecionar)
-            </span>
-            <span className="flex items-center gap-1 font-mono text-[9px] bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 text-blue-400">
-              Isoflex 3D V2
-            </span>
+          {/* Timeline / Animation Bar Mockup (Highly Blender-like visual detail) */}
+          <div className="h-10 bg-[#282828] border-t border-[#1a1a1a] flex items-center px-4 gap-3 text-[10px] select-none text-[#a3a3a3]">
+            <Play className="h-4 w-4 text-[#f27b13] fill-[#f27b13] cursor-pointer hover:scale-110 transition-all" />
+            <span className="text-white font-bold">Timeline:</span>
+            <div className="flex-1 bg-[#1e1e1e] h-2.5 rounded relative border border-[#121212] overflow-hidden">
+              <div className="absolute left-[35%] top-0 bottom-0 w-0.5 bg-[#f27b13]" />
+              <div className="absolute left-0 right-0 top-0 bottom-0 bg-[linear-gradient(to_right,#3d3d3d_1px,transparent_1px)] bg-[size:40px_100%] opacity-20" />
+            </div>
+            <span className="font-mono text-[9px]">Frame: 1 / 250</span>
           </div>
         </div>
 
-        {/* Lower Toolbar: Projects History, BOM details and Exporters */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 shrink-0">
+        {/* Right Sidebar - Blender Outliner & Property Editor */}
+        <div className="w-72 bg-[#2e2e2e] border-l border-[#1a1a1a] flex flex-col overflow-hidden">
           
-          {/* History / Project list */}
-          <Card className="bg-slate-950/40 border-slate-800">
-            <CardHeader className="p-3 pb-1">
-              <CardTitle className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                <FolderOpen className="h-3.5 w-3.5" /> Projetos Recentes
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-1 space-y-1.5 max-h-[130px] overflow-y-auto">
-              {savedProjects.length === 0 ? (
-                <div className="text-[10px] text-slate-600 text-center py-4">Nenhum projeto salvo.</div>
-              ) : (
-                savedProjects.map((p) => (
-                  <div key={p.id} className="flex justify-between items-center bg-slate-900/60 p-1.5 rounded-lg border border-slate-850">
-                    <span className="text-[10px] font-bold truncate text-slate-300 max-w-[120px] cursor-pointer hover:text-blue-400" onClick={() => loadProject(p)}>{p.name}</span>
-                    <div className="flex gap-1.5">
-                      <Button size="xs" variant="ghost" className="h-5 px-1.5 text-[9px] text-slate-400 hover:text-white" onClick={() => loadProject(p)}>Abrir</Button>
-                      <Button size="xs" variant="ghost" className="h-5 px-1 text-rose-500 hover:bg-rose-950/30" onClick={() => deleteProject(p.id)}>
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
+          {/* Outliner (List of Scene Objects) */}
+          <div className="h-44 border-b border-[#1a1a1a] flex flex-col overflow-hidden">
+            <div className="h-7 bg-[#252525] px-3 flex items-center justify-between text-[10px] uppercase font-bold text-[#8a8a8a] border-b border-[#1a1a1a]">
+              <span className="flex items-center gap-1"><List className="h-3 w-3" /> Scene Collection</span>
+              <span>{components.length} objects</span>
+            </div>
+            <div className="flex-1 overflow-y-auto p-2 space-y-1 bg-[#282828]">
+              {components.map((c) => (
+                <div 
+                  key={c.id} 
+                  className={`flex justify-between items-center px-2 py-1 rounded cursor-pointer transition-all ${selectedId === c.id ? "bg-[#f27b13] text-white" : "hover:bg-[#3d3d3d] text-[#c4c4c4]"}`}
+                  onClick={() => setSelectedId(c.id)}
+                >
+                  <span className="flex items-center gap-1.5 truncate max-w-[170px]">
+                    <Box className="h-3 w-3" /> {c.name}
+                  </span>
+                  <div className="flex gap-1.5">
+                    <button onClick={(e) => { e.stopPropagation(); deleteComponent(c.id); }} className="hover:text-rose-500">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+              {components.length === 0 && (
+                <div className="text-[10px] text-center text-slate-600 py-6">Empty Collection</div>
+              )}
+            </div>
+          </div>
+
+          {/* Properties Editor Tabs */}
+          <div className="h-7 bg-[#252525] border-b border-[#1a1a1a] flex text-[10px] select-none text-[#8a8a8a]">
+            <button 
+              className={`flex-1 text-center font-bold border-r border-[#1a1a1a] hover:text-white ${propertiesTab === "object" ? "bg-[#2e2e2e] text-[#f27b13]" : ""}`}
+              onClick={() => setPropertiesTab("object")}
+            >
+              Transform
+            </button>
+            <button 
+              className={`flex-1 text-center font-bold border-r border-[#1a1a1a] hover:text-white ${propertiesTab === "parametric" ? "bg-[#2e2e2e] text-[#f27b13]" : ""}`}
+              onClick={() => setPropertiesTab("parametric")}
+            >
+              Params
+            </button>
+            <button 
+              className={`flex-1 text-center font-bold hover:text-white ${propertiesTab === "material" ? "bg-[#2e2e2e] text-[#f27b13]" : ""}`}
+              onClick={() => setPropertiesTab("material")}
+            >
+              Material
+            </button>
+          </div>
+
+          {/* Properties Editor content */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-4 bg-[#2e2e2e] text-[#c4c4c4]">
+            {selectedComp ? (
+              <>
+                {/* 1. Transform Section */}
+                {propertiesTab === "object" && (
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] uppercase font-bold text-slate-500 border-b border-[#3d3d3d] pb-1">Dimensions (mm)</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <span className="text-[8px] text-slate-500 block mb-0.5">Width</span>
+                        <Input 
+                          type="number" 
+                          value={selectedComp.width}
+                          disabled={selectedComp.type === "GLB"}
+                          onChange={(e) => updateComponentProperty(selectedComp.id, "width", Number(e.target.value))}
+                          className="h-6 text-center text-xs font-semibold bg-[#1e1e1e] border-[#3d3d3d] text-white rounded p-0"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[8px] text-slate-500 block mb-0.5">Height</span>
+                        <Input 
+                          type="number" 
+                          value={selectedComp.height}
+                          disabled={selectedComp.type === "GLB"}
+                          onChange={(e) => updateComponentProperty(selectedComp.id, "height", Number(e.target.value))}
+                          className="h-6 text-center text-xs font-semibold bg-[#1e1e1e] border-[#3d3d3d] text-white rounded p-0"
+                        />
+                      </div>
+                      <div>
+                        <span className="text-[8px] text-slate-500 block mb-0.5">Depth</span>
+                        <Input 
+                          type="number" 
+                          value={selectedComp.depth}
+                          disabled={selectedComp.type === "GLB"}
+                          onChange={(e) => updateComponentProperty(selectedComp.id, "depth", Number(e.target.value))}
+                          className="h-6 text-center text-xs font-semibold bg-[#1e1e1e] border-[#3d3d3d] text-white rounded p-0"
+                        />
+                      </div>
+                    </div>
+
+                    <h4 className="text-[10px] uppercase font-bold text-slate-500 border-b border-[#3d3d3d] pb-1 pt-2">Location X/Y/Z (mm)</h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      <div>
+                        <Input 
+                          type="number" 
+                          step={snapInterval}
+                          value={selectedComp.posX} 
+                          onChange={(e) => updateComponentProperty(selectedComp.id, "posX", Number(e.target.value))}
+                          className="h-6 text-center text-xs font-semibold bg-[#1e1e1e] border-[#3d3d3d] text-white rounded p-0"
+                        />
+                      </div>
+                      <div>
+                        <Input 
+                          type="number" 
+                          step={snapInterval}
+                          value={selectedComp.posY} 
+                          onChange={(e) => updateComponentProperty(selectedComp.id, "posY", Number(e.target.value))}
+                          className="h-6 text-center text-xs font-semibold bg-[#1e1e1e] border-[#3d3d3d] text-white rounded p-0"
+                        />
+                      </div>
+                      <div>
+                        <Input 
+                          type="number" 
+                          step={snapInterval}
+                          value={selectedComp.posZ} 
+                          onChange={(e) => updateComponentProperty(selectedComp.id, "posZ", Number(e.target.value))}
+                          className="h-6 text-center text-xs font-semibold bg-[#1e1e1e] border-[#3d3d3d] text-white rounded p-0"
+                        />
+                      </div>
+                    </div>
+
+                    <h4 className="text-[10px] uppercase font-bold text-slate-500 border-b border-[#3d3d3d] pb-1 pt-2">Rotation Y (Degrees)</h4>
+                    <div className="space-y-1">
+                      <input 
+                        type="range" 
+                        min="0" 
+                        max="360" 
+                        step="45"
+                        value={selectedComp.rotY} 
+                        onChange={(e) => updateComponentProperty(selectedComp.id, "rotY", Number(e.target.value))}
+                        className="w-full accent-[#f27b13] h-1 bg-[#1e1e1e] rounded appearance-none cursor-pointer"
+                      />
+                      <div className="text-right text-[10px] text-slate-400 font-bold">{selectedComp.rotY}°</div>
                     </div>
                   </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
+                )}
 
-          {/* BOM (Bill of Materials) estimation */}
-          <Card className="bg-slate-950/40 border-slate-800">
-            <CardHeader className="p-3 pb-1">
-              <CardTitle className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                <Layers className="h-3.5 w-3.5 animate-bounce" /> Lista de Materiais (BOM)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-1 text-[10px] space-y-1 text-slate-400">
-              <div className="flex justify-between">
-                <span>Perfis Metálicos:</span>
-                <span className="font-bold text-slate-200">{bom.steelMeters} m</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Tampos (MDF):</span>
-                <span className="font-bold text-slate-200">{bom.woodSqMeters} m²</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Rodízios (Rodas):</span>
-                <span className="font-bold text-slate-200">{bom.wheels} un</span>
-              </div>
-              <div className="flex justify-between">
-                <span>Caixas Plásticas:</span>
-                <span className="font-bold text-slate-200">{bom.plasticBins} un</span>
-              </div>
-              <div className="flex justify-between border-t border-slate-800 pt-1.5 font-bold text-slate-300">
-                <span>Peso Estimado:</span>
-                <span className="text-slate-100">~{bom.weightKg} kg</span>
-              </div>
-            </CardContent>
-          </Card>
+                {/* 2. Parametric Config */}
+                {propertiesTab === "parametric" && (
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] uppercase font-bold text-slate-500 border-b border-[#3d3d3d] pb-1">Parametric Modifiers</h4>
+                    
+                    {selectedComp.type === "GLB" && (
+                      <div className="text-xs text-slate-500 py-4 flex gap-1 items-center">
+                        <Info className="h-4 w-4" /> No modifiers for GLB structures.
+                      </div>
+                    )}
 
-          {/* File Exporters */}
-          <Card className="bg-slate-950/40 border-slate-800 flex flex-col justify-between">
-            <CardHeader className="p-3 pb-1">
-              <CardTitle className="text-[10px] uppercase font-bold text-slate-400 flex items-center gap-1">
-                <Download className="h-3.5 w-3.5" /> Exportar Dados
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-3 pt-1 flex flex-col gap-2">
-              <div className="grid grid-cols-2 gap-2">
-                <Button size="xs" className="h-8 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-[10px] font-semibold text-slate-200" onClick={() => handleExportGLTF(true)}>
-                  <Download className="mr-1.5 h-3.5 w-3.5 text-blue-500" /> GLB 3D
-                </Button>
-                <Button size="xs" className="h-8 bg-slate-900 border border-slate-800 hover:bg-slate-800 text-[10px] font-semibold text-slate-200" onClick={() => handleExportGLTF(false)}>
-                  <Download className="mr-1.5 h-3.5 w-3.5 text-blue-500" /> GLTF JSON
-                </Button>
-              </div>
-              <Button size="xs" className="w-full h-8 bg-blue-600 hover:bg-blue-700 text-[10px] font-bold text-white" onClick={handleExportPDF}>
-                <FileText className="mr-1.5 h-3.5 w-3.5" /> Exportar PDF Técnico (BOM + Desenho)
-              </Button>
-            </CardContent>
-          </Card>
+                    {selectedComp.type === "Bancada" && (
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span>Pegboard Panel</span>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedComp.hasPegboard} 
+                            onChange={(e) => updateComponentProperty(selectedComp.id, "hasPegboard", e.target.checked)}
+                            className="rounded bg-[#1e1e1e] border-[#3d3d3d] accent-[#f27b13]"
+                          />
+                        </div>
+                        <div className="flex justify-between items-center text-[10px]">
+                          <span>Drawers Module</span>
+                          <input 
+                            type="checkbox" 
+                            checked={selectedComp.hasDrawers} 
+                            onChange={(e) => updateComponentProperty(selectedComp.id, "hasDrawers", e.target.checked)}
+                            className="rounded bg-[#1e1e1e] border-[#3d3d3d] accent-[#f27b13]"
+                          />
+                        </div>
+                      </div>
+                    )}
 
+                    {selectedComp.type === "FlowRack" && (
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-[8px] text-slate-500 block mb-0.5">Shelves Count</span>
+                          <Input 
+                            type="number" 
+                            min="2" 
+                            max="5"
+                            value={selectedComp.shelvesCount} 
+                            onChange={(e) => updateComponentProperty(selectedComp.id, "shelvesCount", Number(e.target.value))}
+                            className="h-6 bg-[#1e1e1e] border-[#3d3d3d] text-white rounded px-2"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-slate-500 block mb-0.5">Angle (Degrees)</span>
+                          <Input 
+                            type="number" 
+                            min="0" 
+                            max="15"
+                            value={selectedComp.shelfAngle} 
+                            onChange={(e) => updateComponentProperty(selectedComp.id, "shelfAngle", Number(e.target.value))}
+                            className="h-6 bg-[#1e1e1e] border-[#3d3d3d] text-white rounded px-2"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedComp.type === "Carrinho" && (
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-[8px] text-slate-500 block mb-0.5">Shelves Level</span>
+                          <Input 
+                            type="number" 
+                            min="1" 
+                            max="4"
+                            value={selectedComp.shelfCount} 
+                            onChange={(e) => updateComponentProperty(selectedComp.id, "shelfCount", Number(e.target.value))}
+                            className="h-6 bg-[#1e1e1e] border-[#3d3d3d] text-white rounded px-2"
+                          />
+                        </div>
+                        <div>
+                          <span className="text-[8px] text-slate-500 block mb-0.5">Wheels Diameter</span>
+                          <Input 
+                            type="number" 
+                            min="50" 
+                            max="150"
+                            step="25"
+                            value={selectedComp.wheelsDiameter} 
+                            onChange={(e) => updateComponentProperty(selectedComp.id, "wheelsDiameter", Number(e.target.value))}
+                            className="h-6 bg-[#1e1e1e] border-[#3d3d3d] text-white rounded px-2"
+                          />
+                        </div>
+                      </div>
+                    )}
+
+                    {selectedComp.type === "Estante" && (
+                      <div>
+                        <span className="text-[8px] text-slate-500 block mb-0.5">Level Count</span>
+                        <Input 
+                          type="number" 
+                          min="2" 
+                          max="7"
+                          value={selectedComp.levelCount} 
+                          onChange={(e) => updateComponentProperty(selectedComp.id, "levelCount", Number(e.target.value))}
+                          className="h-6 bg-[#1e1e1e] border-[#3d3d3d] text-white rounded px-2"
+                        />
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* 3. Materials / Colors */}
+                {propertiesTab === "material" && (
+                  <div className="space-y-3">
+                    <h4 className="text-[10px] uppercase font-bold text-slate-500 border-b border-[#3d3d3d] pb-1">Blender Finishes</h4>
+                    
+                    {selectedComp.type === "GLB" && (
+                      <div className="text-xs text-slate-500 py-4 flex gap-1 items-center">
+                        <Info className="h-4 w-4" /> GLB meshes use embedded textures.
+                      </div>
+                    )}
+                    
+                    {selectedComp.type !== "GLB" && (
+                      <div className="grid grid-cols-4 gap-2">
+                        {isoflexColors.map((col) => (
+                          <button 
+                            key={col.hex} 
+                            style={{ backgroundColor: col.hex }} 
+                            className={`h-7 w-7 rounded border border-slate-950 transition-all ${selectedComp.color === col.hex ? "ring-2 ring-[#f27b13] scale-110" : "opacity-75 hover:opacity-100"}`}
+                            title={col.name}
+                            onClick={() => updateComponentProperty(selectedComp.id, "color", col.hex)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="text-center text-slate-500 py-12 flex flex-col items-center">
+                <Info className="h-6 w-6 mb-2 text-[#f27b13]" />
+                Select an object from the Collection to edit properties.
+              </div>
+            )}
+          </div>
         </div>
+
       </div>
+
+      {/* 3. Bottom Blender spreadsheet / BOM list / Projects Panel */}
+      <div className="h-32 bg-[#252525] border-t border-[#1a1a1a] grid grid-cols-3 text-[10px] overflow-hidden">
+        
+        {/* Recent projects */}
+        <div className="border-r border-[#1a1a1a] flex flex-col overflow-hidden">
+          <div className="h-6 bg-[#2e2e2e] px-2 flex items-center justify-between font-bold border-b border-[#1a1a1a] text-[#8a8a8a]">
+            <span>Recent Scenes</span>
+            <FolderOpen className="h-3.5 w-3.5" />
+          </div>
+          <div className="flex-1 overflow-y-auto p-1.5 space-y-1">
+            {savedProjects.length === 0 ? (
+              <div className="text-[9px] text-[#5c5c5c] text-center py-4">No recent Blender files.</div>
+            ) : (
+              savedProjects.map((p) => (
+                <div key={p.id} className="flex justify-between items-center bg-[#1e1e1e] p-1 rounded border border-[#2e2e2e]">
+                  <span className="truncate max-w-[130px] text-[#c4c4c4] cursor-pointer hover:text-[#f27b13]" onClick={() => loadProject(p)}>{p.name}</span>
+                  <div className="flex gap-1.5">
+                    <button className="text-[9px] hover:text-white text-[#8a8a8a]" onClick={() => loadProject(p)}>OPEN</button>
+                    <button onClick={() => deleteProject(p.id)} className="hover:text-rose-500 text-[#8a8a8a]">
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        {/* Real-time Material spreadsheet (BOM) */}
+        <div className="border-r border-[#1a1a1a] flex flex-col overflow-hidden">
+          <div className="h-6 bg-[#2e2e2e] px-2 flex items-center justify-between font-bold border-b border-[#1a1a1a] text-[#8a8a8a]">
+            <span>BOM Spreadsheet</span>
+            <FileCode className="h-3.5 w-3.5 text-[#f27b13]" />
+          </div>
+          <div className="flex-1 p-2 grid grid-cols-2 gap-x-4 gap-y-1 bg-[#282828] text-slate-400">
+            <div className="flex justify-between"><span>Steel Profiles:</span><strong className="text-white">{bom.steelMeters}m</strong></div>
+            <div className="flex justify-between"><span>Castors:</span><strong className="text-white">{bom.wheels} un</strong></div>
+            <div className="flex justify-between"><span>Timber MDF:</span><strong className="text-white">{bom.woodSqMeters}m²</strong></div>
+            <div className="flex justify-between"><span>Metal Shelves:</span><strong className="text-white">{bom.metalShelves} un</strong></div>
+            <div className="flex justify-between border-t border-[#3d3d3d] pt-1"><span>Est. Weight:</span><strong className="text-[#f27b13]">~{bom.weightKg}kg</strong></div>
+            <div className="flex justify-between border-t border-[#3d3d3d] pt-1"><span>Est. Cost:</span><strong className="text-[#f27b13]">R$ {bom.cost}</strong></div>
+          </div>
+        </div>
+
+        {/* Exporters and quick settings */}
+        <div className="flex flex-col overflow-hidden bg-[#2e2e2e]">
+          <div className="h-6 bg-[#252525] px-2 flex items-center justify-between font-bold border-b border-[#1a1a1a] text-[#8a8a8a]">
+            <span>Export & Print Panel</span>
+            <Settings className="h-3.5 w-3.5" />
+          </div>
+          <div className="flex-1 p-2 flex flex-col gap-2 justify-center">
+            <div className="grid grid-cols-2 gap-2">
+              <Button size="xs" className="h-7 bg-[#1e1e1e] hover:bg-[#3d3d3d] text-white border border-[#1a1a1a]" onClick={() => handleExportGLTF(true)}>
+                Export GLB (3D)
+              </Button>
+              <Button size="xs" className="h-7 bg-[#1e1e1e] hover:bg-[#3d3d3d] text-white border border-[#1a1a1a]" onClick={() => handleExportGLTF(false)}>
+                Export GLTF
+              </Button>
+            </div>
+            <Button size="xs" className="h-7 bg-[#f27b13] hover:bg-[#d3680e] text-white font-bold" onClick={handleExportPDF}>
+              Render Technical Blueprint (PDF)
+            </Button>
+          </div>
+        </div>
+
+      </div>
+
     </div>
   );
 }
