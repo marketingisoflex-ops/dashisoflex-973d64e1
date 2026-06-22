@@ -31,6 +31,7 @@ import {
   ShoppingCart,
   Plus,
   Trash2,
+  Edit2,
   Calendar,
   CheckCircle,
   AlertCircle,
@@ -42,10 +43,8 @@ import {
   TrendingUp,
   DollarSign,
   Package,
-  ArrowRight,
-  ShieldCheck,
   Scale,
-  Award,
+  Search,
 } from "lucide-react";
 import { fmtBRL } from "@/lib/calc";
 
@@ -123,6 +122,9 @@ function SacComprasPage() {
   const [sacSubTab, setSacSubTab] = useState("pedidos");
   const [compSubTab, setCompSubTab] = useState("planilha");
 
+  // Filter state for Purchases
+  const [purchaseSearch, setPurchaseSearch] = useState("");
+
   // Modals state
   const [isOrderModalOpen, setIsOrderModalOpen] = useState(false);
   const [isFreightModalOpen, setIsFreightModalOpen] = useState(false);
@@ -130,6 +132,14 @@ function SacComprasPage() {
   const [isGlpiModalOpen, setIsGlpiModalOpen] = useState(false);
   const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
   const [isSupplierModalOpen, setIsSupplierModalOpen] = useState(false);
+
+  // Edit references
+  const [editingOrder, setEditingOrder] = useState<SacOrder | null>(null);
+  const [editingFreight, setEditingFreight] = useState<SacFreight | null>(null);
+  const [editingRnc, setEditingRnc] = useState<SacRnc | null>(null);
+  const [editingGlpi, setEditingGlpi] = useState<SacGlpi | null>(null);
+  const [editingPurchase, setEditingPurchase] = useState<PurchaseOrder | null>(null);
+  const [editingSupplier, setEditingSupplier] = useState<Supplier | null>(null);
 
   // Form States - SAC Pedidos
   const [orderForm, setOrderForm] = useState({
@@ -250,121 +260,157 @@ function SacComprasPage() {
   });
 
   // ── Mutations ──
-  const addOrderMutation = useMutation({
+  const saveOrderMutation = useMutation({
     mutationFn: async (payload: any) => {
       const stored = localStorage.getItem("sac_orders_fallback");
-      const list = stored ? JSON.parse(stored) : [];
-      list.push({
-        id: `ord_${Date.now()}`,
-        ...payload,
-      });
+      let list = stored ? JSON.parse(stored) : [];
+
+      if (editingOrder) {
+        list = list.map((item: any) =>
+          item.id === editingOrder.id ? { ...item, ...payload } : item
+        );
+      } else {
+        list.push({ id: `ord_${Date.now()}`, ...payload });
+      }
       localStorage.setItem("sac_orders_fallback", JSON.stringify(list));
     },
     onSuccess: () => {
-      toast.success("Pedido registrado para acompanhamento!");
+      toast.success(editingOrder ? "Acompanhamento atualizado!" : "Pedido registrado com sucesso!");
       qc.invalidateQueries({ queryKey: ["sac_orders"] });
       setIsOrderModalOpen(false);
-      setOrderForm({ client_name: "", order_code: "", dispatch_date: new Date().toISOString().split("T")[0], status: "faturamento", carrier: "" });
+      setEditingOrder(null);
     },
   });
 
-  const addFreightMutation = useMutation({
+  const saveFreightMutation = useMutation({
     mutationFn: async (payload: any) => {
       const stored = localStorage.getItem("sac_freights_fallback");
-      const list = stored ? JSON.parse(stored) : [];
-      list.push({
-        id: `frt_${Date.now()}`,
-        ...payload,
-        value: Number(payload.value || 0),
-      });
+      let list = stored ? JSON.parse(stored) : [];
+      const data = { ...payload, value: Number(payload.value || 0) };
+
+      if (editingFreight) {
+        list = list.map((item: any) =>
+          item.id === editingFreight.id ? { ...item, ...data } : item
+        );
+      } else {
+        list.push({ id: `frt_${Date.now()}`, ...data });
+      }
       localStorage.setItem("sac_freights_fallback", JSON.stringify(list));
     },
     onSuccess: () => {
-      toast.success("Controle de frete adicionado!");
+      toast.success(editingFreight ? "Registro de frete atualizado!" : "Frete adicionado com sucesso!");
       qc.invalidateQueries({ queryKey: ["sac_freights"] });
       setIsFreightModalOpen(false);
-      setFreightForm({ carrier_name: "", tracking_code: "", value: "", status: "coletado", delivery_date: new Date().toISOString().split("T")[0] });
+      setEditingFreight(null);
     },
   });
 
-  const addRncMutation = useMutation({
+  const saveRncMutation = useMutation({
     mutationFn: async (payload: any) => {
       const stored = localStorage.getItem("sac_rncs_fallback");
-      const list = stored ? JSON.parse(stored) : [];
-      list.push({
-        id: `rnc_${Date.now()}`,
-        rnc_code: `RNC-2026-${list.length + 101}`,
-        created_at: new Date().toISOString(),
-        ...payload,
-      });
+      let list = stored ? JSON.parse(stored) : [];
+
+      if (editingRnc) {
+        list = list.map((item: any) =>
+          item.id === editingRnc.id ? { ...item, ...payload } : item
+        );
+      } else {
+        list.push({
+          id: `rnc_${Date.now()}`,
+          rnc_code: `RNC-2026-${list.length + 101}`,
+          created_at: new Date().toISOString(),
+          ...payload,
+        });
+      }
       localStorage.setItem("sac_rncs_fallback", JSON.stringify(list));
     },
     onSuccess: () => {
-      toast.success("Relatório de Não Conformidade registrado!");
+      toast.success(editingRnc ? "RNC atualizado!" : "RNC registrado com sucesso!");
       qc.invalidateQueries({ queryKey: ["sac_rncs"] });
       setIsRncModalOpen(false);
-      setRncForm({ item_desc: "", non_conformity: "", responsible: "", status: "analise" });
+      setEditingRnc(null);
     },
   });
 
-  const addGlpiMutation = useMutation({
+  const saveGlpiMutation = useMutation({
     mutationFn: async (payload: any) => {
       const stored = localStorage.getItem("sac_glpi_fallback");
-      const list = stored ? JSON.parse(stored) : [];
-      list.push({
-        id: `glp_${Date.now()}`,
-        created_at: new Date().toISOString(),
-        ...payload,
-      });
+      let list = stored ? JSON.parse(stored) : [];
+
+      if (editingGlpi) {
+        list = list.map((item: any) =>
+          item.id === editingGlpi.id ? { ...item, ...payload } : item
+        );
+      } else {
+        list.push({
+          id: `glp_${Date.now()}`,
+          created_at: new Date().toISOString(),
+          ...payload,
+        });
+      }
       localStorage.setItem("sac_glpi_fallback", JSON.stringify(list));
     },
     onSuccess: () => {
-      toast.success("Chamado GLPI vinculado com sucesso!");
+      toast.success(editingGlpi ? "Ticket GLPI atualizado!" : "Chamado GLPI vinculado com sucesso!");
       qc.invalidateQueries({ queryKey: ["sac_glpi"] });
       setIsGlpiModalOpen(false);
-      setGlpiForm({ ticket_number: "", title: "", requester: "", priority: "media", tech_agent: "", status: "novo" });
+      setEditingGlpi(null);
     },
   });
 
-  const addPurchaseMutation = useMutation({
+  const savePurchaseMutation = useMutation({
     mutationFn: async (payload: any) => {
       const stored = localStorage.getItem("comp_purchases_fallback");
-      const list = stored ? JSON.parse(stored) : [];
+      let list = stored ? JSON.parse(stored) : [];
       const qty = Number(payload.quantity || 1);
       const prc = Number(payload.price || 0);
-      list.push({
-        id: `pur_${Date.now()}`,
+      const data = {
         ...payload,
         price: prc,
         quantity: qty,
         total_cost: qty * prc,
-      });
+      };
+
+      if (editingPurchase) {
+        list = list.map((item: any) =>
+          item.id === editingPurchase.id ? { ...item, ...data } : item
+        );
+      } else {
+        list.push({ id: `pur_${Date.now()}`, ...data });
+      }
       localStorage.setItem("comp_purchases_fallback", JSON.stringify(list));
     },
     onSuccess: () => {
-      toast.success("Pedido de compra registrado!");
+      toast.success(editingPurchase ? "Registro de compra atualizado!" : "Pedido de compra registrado!");
       qc.invalidateQueries({ queryKey: ["comp_purchases"] });
       setIsPurchaseModalOpen(false);
-      setPurchaseForm({ item_name: "", supplier_name: "", price: "", quantity: "", status: "cotacao", delivery_date: new Date().toISOString().split("T")[0], responsible: "" });
+      setEditingPurchase(null);
     },
   });
 
-  const addSupplierMutation = useMutation({
+  const saveSupplierMutation = useMutation({
     mutationFn: async (payload: any) => {
       const stored = localStorage.getItem("comp_suppliers_fallback");
-      const list = stored ? JSON.parse(stored) : [];
-      list.push({
-        id: `spl_${Date.now()}`,
+      let list = stored ? JSON.parse(stored) : [];
+      const data = {
         ...payload,
         quality_score: Number(payload.quality_score),
-      });
+      };
+
+      if (editingSupplier) {
+        list = list.map((item: any) =>
+          item.id === editingSupplier.id ? { ...item, ...data } : item
+        );
+      } else {
+        list.push({ id: `spl_${Date.now()}`, ...data });
+      }
       localStorage.setItem("comp_suppliers_fallback", JSON.stringify(list));
     },
     onSuccess: () => {
-      toast.success("Fornecedor cadastrado!");
+      toast.success(editingSupplier ? "Fornecedor atualizado!" : "Fornecedor cadastrado com sucesso!");
       qc.invalidateQueries({ queryKey: ["comp_suppliers"] });
       setIsSupplierModalOpen(false);
-      setSupplierForm({ name: "", cnpj: "", contact: "", phone: "", quality_score: "5" });
+      setEditingSupplier(null);
     },
   });
 
@@ -401,6 +447,18 @@ function SacComprasPage() {
     return { total, completed, active };
   }, [purchases]);
 
+  // Filtered Purchases for Interactive Table
+  const filteredPurchases = useMemo(() => {
+    if (!purchaseSearch) return purchases;
+    const term = purchaseSearch.toLowerCase();
+    return purchases.filter(
+      p =>
+        p.item_name.toLowerCase().includes(term) ||
+        p.supplier_name.toLowerCase().includes(term) ||
+        p.responsible.toLowerCase().includes(term)
+    );
+  }, [purchases, purchaseSearch]);
+
   // Comparison logic
   const comparisonResult = useMemo(() => {
     if (!compTool.itemName || !compTool.supp1Name || !compTool.supp2Name) return null;
@@ -412,7 +470,6 @@ function SacComprasPage() {
     const q1 = Number(compTool.supp1Quality);
     const q2 = Number(compTool.supp2Quality);
 
-    // Score calculations
     const priceScore1 = p1 > 0 ? (Math.min(p1, p2) / p1) * 40 : 0;
     const priceScore2 = p2 > 0 ? (Math.min(p1, p2) / p2) * 40 : 0;
     const daysScore1 = d1 > 0 ? (Math.min(d1, d2) / d1) * 30 : 0;
@@ -438,18 +495,93 @@ function SacComprasPage() {
     };
   }, [compTool]);
 
+  // Start Editing handlers
+  const startEditOrder = (row: SacOrder) => {
+    setEditingOrder(row);
+    setOrderForm({
+      client_name: row.client_name,
+      order_code: row.order_code,
+      dispatch_date: row.dispatch_date,
+      status: row.status,
+      carrier: row.carrier,
+    });
+    setIsOrderModalOpen(true);
+  };
+
+  const startEditFreight = (row: SacFreight) => {
+    setEditingFreight(row);
+    setFreightForm({
+      carrier_name: row.carrier_name,
+      tracking_code: row.tracking_code,
+      value: String(row.value),
+      status: row.status,
+      delivery_date: row.delivery_date,
+    });
+    setIsFreightModalOpen(true);
+  };
+
+  const startEditRnc = (row: SacRnc) => {
+    setEditingRnc(row);
+    setRncForm({
+      item_desc: row.item_desc,
+      non_conformity: row.non_conformity,
+      responsible: row.responsible,
+      status: row.status,
+    });
+    setIsRncModalOpen(true);
+  };
+
+  const startEditGlpi = (row: SacGlpi) => {
+    setEditingGlpi(row);
+    setGlpiForm({
+      ticket_number: row.ticket_number,
+      title: row.title,
+      requester: row.requester,
+      priority: row.priority,
+      tech_agent: row.tech_agent,
+      status: row.status,
+    });
+    setIsGlpiModalOpen(true);
+  };
+
+  const startEditPurchase = (row: PurchaseOrder) => {
+    setEditingPurchase(row);
+    setPurchaseForm({
+      item_name: row.item_name,
+      supplier_name: row.supplier_name,
+      price: String(row.price),
+      quantity: String(row.quantity),
+      status: row.status,
+      delivery_date: row.delivery_date,
+      responsible: row.responsible,
+    });
+    setIsPurchaseModalOpen(true);
+  };
+
+  const startEditSupplier = (row: Supplier) => {
+    setEditingSupplier(row);
+    setSupplierForm({
+      name: row.name,
+      cnpj: row.cnpj,
+      contact: row.contact,
+      phone: row.phone,
+      quality_score: String(row.quality_score),
+    });
+    setIsSupplierModalOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100 text-orange-600 shadow-inner">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-orange-100 text-orange-600 shadow-inner animate-float">
             <PhoneCall className="h-5 w-5" />
           </div>
           <div>
             <h1 className="text-2xl font-black tracking-tight text-slate-800">SAC / COMPRAS</h1>
             <p className="text-xs text-muted-foreground">
-              Acompanhamento de fretes, RNC, chamados GLPI, cadastro de fornecedores e comparativo de cotação.
+              Gerenciamento dinâmico de fretes, RNC, chamados GLPI, catálogo de fornecedores e planilhas de compras.
             </p>
           </div>
         </div>
@@ -458,22 +590,22 @@ function SacComprasPage() {
           {activeTab === "sac" ? (
             <>
               {sacSubTab === "pedidos" && (
-                <Button onClick={() => setIsOrderModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+                <Button onClick={() => { setEditingOrder(null); setOrderForm({ client_name: "", order_code: "", dispatch_date: new Date().toISOString().split("T")[0], status: "faturamento", carrier: "" }); setIsOrderModalOpen(true); }} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
                   <Plus className="mr-2 h-4 w-4" /> Acompanhar Pedido
                 </Button>
               )}
               {sacSubTab === "fretes" && (
-                <Button onClick={() => setIsFreightModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+                <Button onClick={() => { setEditingFreight(null); setFreightForm({ carrier_name: "", tracking_code: "", value: "", status: "coletado", delivery_date: new Date().toISOString().split("T")[0] }); setIsFreightModalOpen(true); }} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
                   <Plus className="mr-2 h-4 w-4" /> Registrar Frete
                 </Button>
               )}
               {sacSubTab === "rncs" && (
-                <Button onClick={() => setIsRncModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+                <Button onClick={() => { setEditingRnc(null); setRncForm({ item_desc: "", non_conformity: "", responsible: "", status: "analise" }); setIsRncModalOpen(true); }} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
                   <Plus className="mr-2 h-4 w-4" /> Abrir RNC
                 </Button>
               )}
               {sacSubTab === "glpi" && (
-                <Button onClick={() => setIsGlpiModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+                <Button onClick={() => { setEditingGlpi(null); setGlpiForm({ ticket_number: "", title: "", requester: "", priority: "media", tech_agent: "", status: "novo" }); setIsGlpiModalOpen(true); }} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
                   <Plus className="mr-2 h-4 w-4" /> Vincular Chamado GLPI
                 </Button>
               )}
@@ -481,12 +613,12 @@ function SacComprasPage() {
           ) : (
             <>
               {compSubTab === "planilha" && (
-                <Button onClick={() => setIsPurchaseModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+                <Button onClick={() => { setEditingPurchase(null); setPurchaseForm({ item_name: "", supplier_name: "", price: "", quantity: "", status: "cotacao", delivery_date: new Date().toISOString().split("T")[0], responsible: "" }); setIsPurchaseModalOpen(true); }} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
                   <Plus className="mr-2 h-4 w-4" /> Registrar Compra
                 </Button>
               )}
               {compSubTab === "fornecedores" && (
-                <Button onClick={() => setIsSupplierModalOpen(true)} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
+                <Button onClick={() => { setEditingSupplier(null); setSupplierForm({ name: "", cnpj: "", contact: "", phone: "", quality_score: "5" }); setIsSupplierModalOpen(true); }} className="hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground">
                   <Plus className="mr-2 h-4 w-4" /> Cadastrar Fornecedor
                 </Button>
               )}
@@ -573,7 +705,7 @@ function SacComprasPage() {
                       </TableRow>
                     ) : (
                       sacOrders.map((ord) => (
-                        <TableRow key={ord.id}>
+                        <TableRow key={ord.id} className="hover:bg-slate-50/50">
                           <TableCell className="font-bold text-xs text-slate-800 font-mono">{ord.order_code}</TableCell>
                           <TableCell className="text-xs font-bold text-slate-700">{ord.client_name}</TableCell>
                           <TableCell className="text-xs text-slate-500">
@@ -589,9 +721,12 @@ function SacComprasPage() {
                               {ord.status.toUpperCase()}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7" onClick={() => delOrder.mutate(ord.id)}>
-                              <Trash2 className="h-4 w-4 text-rose-600" />
+                          <TableCell className="text-center flex justify-center gap-1.5 py-3">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-indigo-600 hover:bg-indigo-50" onClick={() => startEditOrder(ord)}>
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7 text-rose-600" onClick={() => delOrder.mutate(ord.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -633,7 +768,7 @@ function SacComprasPage() {
                       </TableRow>
                     ) : (
                       sacFreights.map((frt) => (
-                        <TableRow key={frt.id}>
+                        <TableRow key={frt.id} className="hover:bg-slate-50/50">
                           <TableCell className="text-xs font-bold text-slate-800">{frt.carrier_name}</TableCell>
                           <TableCell className="text-xs font-mono text-slate-500">{frt.tracking_code || "—"}</TableCell>
                           <TableCell className="text-xs font-bold text-slate-700">{fmtBRL(frt.value)}</TableCell>
@@ -650,9 +785,12 @@ function SacComprasPage() {
                               {frt.status.toUpperCase()}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7" onClick={() => delFreight.mutate(frt.id)}>
-                              <Trash2 className="h-4 w-4 text-rose-600" />
+                          <TableCell className="text-center flex justify-center gap-1.5 py-3">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-indigo-600 hover:bg-indigo-50" onClick={() => startEditFreight(frt)}>
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7 text-rose-600" onClick={() => delFreight.mutate(frt.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -695,7 +833,7 @@ function SacComprasPage() {
                       </TableRow>
                     ) : (
                       sacRncs.map((rnc) => (
-                        <TableRow key={rnc.id}>
+                        <TableRow key={rnc.id} className="hover:bg-slate-50/50">
                           <TableCell className="font-bold text-xs text-amber-600 font-mono">{rnc.rnc_code}</TableCell>
                           <TableCell className="text-xs font-bold text-slate-800">{rnc.item_desc}</TableCell>
                           <TableCell className="text-xs text-slate-600 max-w-xs truncate">{rnc.non_conformity}</TableCell>
@@ -712,9 +850,12 @@ function SacComprasPage() {
                           <TableCell className="text-xs text-slate-400">
                             {new Date(rnc.created_at).toLocaleDateString("pt-BR")}
                           </TableCell>
-                          <TableCell className="text-center">
-                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7" onClick={() => delRnc.mutate(rnc.id)}>
-                              <Trash2 className="h-4 w-4 text-rose-600" />
+                          <TableCell className="text-center flex justify-center gap-1.5 py-3">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-indigo-600 hover:bg-indigo-50" onClick={() => startEditRnc(rnc)}>
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7 text-rose-600" onClick={() => delRnc.mutate(rnc.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -757,7 +898,7 @@ function SacComprasPage() {
                       </TableRow>
                     ) : (
                       sacGlpi.map((ticket) => (
-                        <TableRow key={ticket.id}>
+                        <TableRow key={ticket.id} className="hover:bg-slate-50/50">
                           <TableCell className="font-bold text-xs text-slate-700 font-mono">#{ticket.ticket_number}</TableCell>
                           <TableCell className="text-xs font-bold text-slate-800">{ticket.title}</TableCell>
                           <TableCell className="text-xs text-slate-500">{ticket.requester}</TableCell>
@@ -781,9 +922,12 @@ function SacComprasPage() {
                               {ticket.status === "em_atendimento" ? "EM ATENDIMENTO" : ticket.status.toUpperCase()}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7" onClick={() => delGlpi.mutate(ticket.id)}>
-                              <Trash2 className="h-4 w-4 text-rose-600" />
+                          <TableCell className="text-center flex justify-center gap-1.5 py-3">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-indigo-600 hover:bg-indigo-50" onClick={() => startEditGlpi(ticket)}>
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7 text-rose-600" onClick={() => delGlpi.mutate(ticket.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -836,16 +980,31 @@ function SacComprasPage() {
           {/* Sub-tab 1: Planilha de Pedidos */}
           {compSubTab === "planilha" && (
             <Card className="glass border-white/40">
-              <CardHeader>
-                <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
-                  <FileSpreadsheet className="h-5 w-5 text-indigo-500" /> Planilha de Compras Realizadas
-                </CardTitle>
-                <CardDescription className="text-xs">Histórico de insumos, matérias-primas e ferramentas cotadas/adquiridas.</CardDescription>
+              <CardHeader className="pb-3">
+                <div className="flex flex-wrap items-center justify-between gap-4">
+                  <div>
+                    <CardTitle className="text-base font-bold text-slate-800 flex items-center gap-2">
+                      <FileSpreadsheet className="h-5 w-5 text-indigo-500" /> Planilha de Compras Realizadas
+                    </CardTitle>
+                    <CardDescription className="text-xs">Histórico de insumos, matérias-primas e ferramentas cotadas/adquiridas.</CardDescription>
+                  </div>
+                  {/* Search/Filter box to make spreadsheet highly interactive */}
+                  <div className="relative w-full sm:w-64">
+                    <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                    <Input
+                      type="text"
+                      placeholder="Filtrar por insumo, fornecedor..."
+                      value={purchaseSearch}
+                      onChange={(e) => setPurchaseSearch(e.target.value)}
+                      className="pl-8 h-8 text-xs bg-white/70"
+                    />
+                  </div>
+                </div>
               </CardHeader>
               <CardContent className="p-0 overflow-x-auto">
                 <Table>
                   <TableHeader>
-                    <TableRow>
+                    <TableRow className="bg-slate-50">
                       <TableHead>Insumo / Item</TableHead>
                       <TableHead>Fornecedor</TableHead>
                       <TableHead>Preço Unitário</TableHead>
@@ -857,16 +1016,18 @@ function SacComprasPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {purchases.length === 0 ? (
+                    {filteredPurchases.length === 0 ? (
                       <TableRow>
                         <TableCell colSpan={8} className="text-center py-8 text-slate-400 text-xs font-medium">
-                          Nenhuma compra registrada na planilha.
+                          Nenhuma compra encontrada com os filtros ativos.
                         </TableCell>
                       </TableRow>
                     ) : (
-                      purchases.map((pur) => (
-                        <TableRow key={pur.id}>
-                          <TableCell className="text-xs font-bold text-slate-800">{pur.item_name}</TableCell>
+                      filteredPurchases.map((pur) => (
+                        <TableRow key={pur.id} className="hover:bg-slate-50/50 border-b border-slate-100">
+                          <TableCell className="text-xs font-bold text-slate-800 flex items-center gap-1.5 py-3">
+                            <span className="w-1.5 h-1.5 rounded-full bg-indigo-500" /> {pur.item_name}
+                          </TableCell>
                           <TableCell className="text-xs text-indigo-600 font-semibold">{pur.supplier_name}</TableCell>
                           <TableCell className="text-xs text-slate-500 font-mono">{fmtBRL(pur.price)}</TableCell>
                           <TableCell className="text-xs text-slate-600 font-bold">{pur.quantity}</TableCell>
@@ -883,9 +1044,12 @@ function SacComprasPage() {
                               {pur.status.toUpperCase()}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7" onClick={() => delPurchase.mutate(pur.id)}>
-                              <Trash2 className="h-4 w-4 text-rose-600" />
+                          <TableCell className="text-center flex justify-center gap-1.5 py-3">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-indigo-600 hover:bg-indigo-50" onClick={() => startEditPurchase(pur)}>
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7 text-rose-600" onClick={() => delPurchase.mutate(pur.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -927,7 +1091,7 @@ function SacComprasPage() {
                       </TableRow>
                     ) : (
                       suppliers.map((sup) => (
-                        <TableRow key={sup.id}>
+                        <TableRow key={sup.id} className="hover:bg-slate-50/50">
                           <TableCell className="text-xs font-bold text-slate-800">{sup.name}</TableCell>
                           <TableCell className="text-xs font-mono text-slate-500">{sup.cnpj || "—"}</TableCell>
                           <TableCell className="text-xs text-slate-600 font-semibold">{sup.contact || "—"}</TableCell>
@@ -937,9 +1101,12 @@ function SacComprasPage() {
                               ★ {sup.quality_score} / 5
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-center">
-                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7" onClick={() => delSupplier.mutate(sup.id)}>
-                              <Trash2 className="h-4 w-4 text-rose-600" />
+                          <TableCell className="text-center flex justify-center gap-1.5 py-3">
+                            <Button size="icon" variant="ghost" className="h-7 w-7 text-indigo-600 hover:bg-indigo-50" onClick={() => startEditSupplier(sup)}>
+                              <Edit2 className="h-3.5 w-3.5" />
+                            </Button>
+                            <Button size="icon" variant="ghost" className="hover:bg-rose-50 h-7 w-7 text-rose-600" onClick={() => delSupplier.mutate(sup.id)}>
+                              <Trash2 className="h-3.5 w-3.5" />
                             </Button>
                           </TableCell>
                         </TableRow>
@@ -955,7 +1122,7 @@ function SacComprasPage() {
           {compSubTab === "custos" && (
             <div className="space-y-6">
               <div className="grid gap-4 sm:grid-cols-3">
-                <Card className="glass border-white/40">
+                <Card className="glass border-white/40 shadow-xs">
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
@@ -969,7 +1136,7 @@ function SacComprasPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="glass border-white/40">
+                <Card className="glass border-white/40 shadow-xs">
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
@@ -983,7 +1150,7 @@ function SacComprasPage() {
                   </CardContent>
                 </Card>
 
-                <Card className="glass border-white/40">
+                <Card className="glass border-white/40 shadow-xs">
                   <CardContent className="pt-6">
                     <div className="flex justify-between items-start">
                       <div className="space-y-1">
@@ -1223,15 +1390,17 @@ function SacComprasPage() {
         </TabsContent>
       </Tabs>
 
-      {/* ── Add Order Dialog (SAC) ── */}
+      {/* ── Add / Edit Order Dialog (SAC) ── */}
       {isOrderModalOpen && (
         <Dialog open onOpenChange={setIsOrderModalOpen}>
           <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle className="font-bold text-slate-800">Acompanhar Pedido</DialogTitle>
-              <DialogDescription className="text-xs">Registre um pedido de cliente para gerenciar o status de expedição e faturamento.</DialogDescription>
+              <DialogTitle className="font-bold text-slate-800">
+                {editingOrder ? "Editar Acompanhamento de Pedido" : "Acompanhar Pedido"}
+              </DialogTitle>
+              <DialogDescription className="text-xs">Registre ou edite o status de expedição do pedido.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); addOrderMutation.mutate(orderForm); }} className="space-y-4 py-2">
+            <form onSubmit={(e) => { e.preventDefault(); saveOrderMutation.mutate(orderForm); }} className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs">Código Pedido</Label>
@@ -1286,22 +1455,24 @@ function SacComprasPage() {
               </div>
               <DialogFooter className="mt-6">
                 <Button type="button" variant="outline" onClick={() => setIsOrderModalOpen(false)}>Cancelar</Button>
-                <Button type="submit">Lançar Acompanhamento</Button>
+                <Button type="submit">Salvar Registro</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* ── Add Freight Dialog (SAC) ── */}
+      {/* ── Add / Edit Freight Dialog (SAC) ── */}
       {isFreightModalOpen && (
         <Dialog open onOpenChange={setIsFreightModalOpen}>
           <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle className="font-bold text-slate-800">Registrar Controle de Frete</DialogTitle>
-              <DialogDescription className="text-xs">Cadastre a rota, valor do frete cobrado e previsão de entrega.</DialogDescription>
+              <DialogTitle className="font-bold text-slate-800">
+                {editingFreight ? "Editar Controle de Frete" : "Registrar Controle de Frete"}
+              </DialogTitle>
+              <DialogDescription className="text-xs">Cadastre ou atualize a rota e valor do frete.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); addFreightMutation.mutate(freightForm); }} className="space-y-4 py-2">
+            <form onSubmit={(e) => { e.preventDefault(); saveFreightMutation.mutate(freightForm); }} className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs">Transportadora</Label>
@@ -1358,22 +1529,24 @@ function SacComprasPage() {
               </div>
               <DialogFooter className="mt-6">
                 <Button type="button" variant="outline" onClick={() => setIsFreightModalOpen(false)}>Cancelar</Button>
-                <Button type="submit">Salvar Frete</Button>
+                <Button type="submit">Salvar Registro</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* ── Add RNC Dialog (SAC) ── */}
+      {/* ── Add / Edit RNC Dialog (SAC) ── */}
       {isRncModalOpen && (
         <Dialog open onOpenChange={setIsRncModalOpen}>
           <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle className="font-bold text-slate-800">Registrar Não Conformidade (RNC)</DialogTitle>
-              <DialogDescription className="text-xs">Abra um chamado de problema na peça, material ou serviço e defina as ações.</DialogDescription>
+              <DialogTitle className="font-bold text-slate-800">
+                {editingRnc ? "Editar RNC" : "Registrar Não Conformidade (RNC)"}
+              </DialogTitle>
+              <DialogDescription className="text-xs">Abra ou edite o chamado de problema e defina as ações corretivas.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); addRncMutation.mutate(rncForm); }} className="space-y-4 py-2">
+            <form onSubmit={(e) => { e.preventDefault(); saveRncMutation.mutate(rncForm); }} className="space-y-4 py-2">
               <div className="space-y-1">
                 <Label className="text-xs">Item Atingido / Produto</Label>
                 <Input 
@@ -1417,22 +1590,24 @@ function SacComprasPage() {
               </div>
               <DialogFooter className="mt-6">
                 <Button type="button" variant="outline" onClick={() => setIsRncModalOpen(false)}>Cancelar</Button>
-                <Button type="submit">Abrir Ticket RNC</Button>
+                <Button type="submit">Salvar RNC</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* ── Add GLPI Dialog (SAC) ── */}
+      {/* ── Add / Edit GLPI Dialog (SAC) ── */}
       {isGlpiModalOpen && (
         <Dialog open onOpenChange={setIsGlpiModalOpen}>
           <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle className="font-bold text-slate-800">Vincular Chamado GLPI</DialogTitle>
-              <DialogDescription className="text-xs">Vincule os chamados do sistema GLPI local de tecnologia ou suporte de TI.</DialogDescription>
+              <DialogTitle className="font-bold text-slate-800">
+                {editingGlpi ? "Editar Chamado GLPI" : "Vincular Chamado GLPI"}
+              </DialogTitle>
+              <DialogDescription className="text-xs">Vincule ou atualize os chamados do suporte técnico.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); addGlpiMutation.mutate(glpiForm); }} className="space-y-4 py-2">
+            <form onSubmit={(e) => { e.preventDefault(); saveGlpiMutation.mutate(glpiForm); }} className="space-y-4 py-2">
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-1">
                   <Label className="text-xs">Número do Chamado (#)</Label>
@@ -1500,26 +1675,28 @@ function SacComprasPage() {
               </div>
               <DialogFooter className="mt-6">
                 <Button type="button" variant="outline" onClick={() => setIsGlpiModalOpen(false)}>Cancelar</Button>
-                <Button type="submit">Vincular Ticket</Button>
+                <Button type="submit">Salvar Registro</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* ── Add Purchase Dialog (COMPRAS) ── */}
+      {/* ── Add / Edit Purchase Dialog (COMPRAS) ── */}
       {isPurchaseModalOpen && (
         <Dialog open onOpenChange={setIsPurchaseModalOpen}>
           <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle className="font-bold text-slate-800">Lançar Compra Realizada</DialogTitle>
-              <DialogDescription className="text-xs">Registre itens e insumos faturados ou orçados na planilha.</DialogDescription>
+              <DialogTitle className="font-bold text-slate-800">
+                {editingPurchase ? "Editar Lançamento de Compra" : "Lançar Compra Realizada"}
+              </DialogTitle>
+              <DialogDescription className="text-xs">Registre ou edite insumos faturados ou orçados.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); addPurchaseMutation.mutate(purchaseForm); }} className="space-y-4 py-2">
+            <form onSubmit={(e) => { e.preventDefault(); savePurchaseMutation.mutate(purchaseForm); }} className="space-y-4 py-2">
               <div className="space-y-1">
                 <Label className="text-xs">Descrição do Item</Label>
                 <Input 
-                  placeholder="Ex: Tintas Esmalte Azul Ral 5010" 
+                  placeholder="Ex: Tintas Esmalte" 
                   value={purchaseForm.item_name}
                   onChange={(e) => setPurchaseForm({...purchaseForm, item_name: e.target.value})}
                   required
@@ -1550,6 +1727,7 @@ function SacComprasPage() {
                   <Label className="text-xs">Preço Unitário (R$)</Label>
                   <Input 
                     type="number"
+                    step="0.01"
                     placeholder="Ex: 45.90" 
                     value={purchaseForm.price}
                     onChange={(e) => setPurchaseForm({...purchaseForm, price: e.target.value})}
@@ -1592,22 +1770,24 @@ function SacComprasPage() {
               </div>
               <DialogFooter className="mt-6">
                 <Button type="button" variant="outline" onClick={() => setIsPurchaseModalOpen(false)}>Cancelar</Button>
-                <Button type="submit">Adicionar Planilha</Button>
+                <Button type="submit">Salvar Registro</Button>
               </DialogFooter>
             </form>
           </DialogContent>
         </Dialog>
       )}
 
-      {/* ── Add Supplier Dialog (COMPRAS) ── */}
+      {/* ── Add / Edit Supplier Dialog (COMPRAS) ── */}
       {isSupplierModalOpen && (
         <Dialog open onOpenChange={setIsSupplierModalOpen}>
           <DialogContent className="sm:max-w-[420px]">
             <DialogHeader>
-              <DialogTitle className="font-bold text-slate-800">Cadastrar Fornecedor</DialogTitle>
-              <DialogDescription className="text-xs">Adicione novos parceiros comerciais à base de homologação da Isoflex.</DialogDescription>
+              <DialogTitle className="font-bold text-slate-800">
+                {editingSupplier ? "Editar Fornecedor" : "Cadastrar Fornecedor"}
+              </DialogTitle>
+              <DialogDescription className="text-xs">Adicione ou atualize os parceiros comerciais.</DialogDescription>
             </DialogHeader>
-            <form onSubmit={(e) => { e.preventDefault(); addSupplierMutation.mutate(supplierForm); }} className="space-y-4 py-2">
+            <form onSubmit={(e) => { e.preventDefault(); saveSupplierMutation.mutate(supplierForm); }} className="space-y-4 py-2">
               <div className="space-y-1">
                 <Label className="text-xs">Razão Social / Nome Fantasia</Label>
                 <Input 
@@ -1664,7 +1844,7 @@ function SacComprasPage() {
               </div>
               <DialogFooter className="mt-6">
                 <Button type="button" variant="outline" onClick={() => setIsSupplierModalOpen(false)}>Cancelar</Button>
-                <Button type="submit">Cadastrar Fornecedor</Button>
+                <Button type="submit">Salvar Registro</Button>
               </DialogFooter>
             </form>
           </DialogContent>

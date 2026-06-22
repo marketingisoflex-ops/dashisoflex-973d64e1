@@ -243,6 +243,58 @@ function ComercialPage() {
     onError: (err: any) => toast.error(err.message),
   });
 
+  // ── Mutation - Delete Opportunity ──
+  const deleteOppMutation = useMutation({
+    mutationFn: async (oppId: string) => {
+      try {
+        const { error } = await supabase
+          .from("comercial_opportunities")
+          .delete()
+          .eq("id", oppId);
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Fallback to localStorage for deleteOpportunity:", err);
+        const stored = localStorage.getItem("com_opportunities_fallback");
+        if (stored) {
+          let list = JSON.parse(stored);
+          list = list.filter((item: any) => item.id !== oppId);
+          localStorage.setItem("com_opportunities_fallback", JSON.stringify(list));
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comercial_opportunities"] });
+      toast.success("Oportunidade removida!");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
+  // ── Mutation - Delete Saleswoman ──
+  const deleteSaleswomanMutation = useMutation({
+    mutationFn: async (swId: string) => {
+      try {
+        const { error } = await supabase
+          .from("comercial_saleswomen")
+          .delete()
+          .eq("id", swId);
+        if (error) throw error;
+      } catch (err) {
+        console.warn("Fallback to localStorage for deleteSaleswoman:", err);
+        const stored = localStorage.getItem("com_saleswomen_fallback");
+        if (stored) {
+          let list = JSON.parse(stored);
+          list = list.filter((item: any) => item.id !== swId);
+          localStorage.setItem("com_saleswomen_fallback", JSON.stringify(list));
+        }
+      }
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["comercial_saleswomen"] });
+      toast.success("Vendedora removida!");
+    },
+    onError: (err: any) => toast.error(err.message),
+  });
+
   // Calculate Pipeline statistics
   const kanbanColumns = useMemo(() => {
     const cols: Record<string, { opportunities: any[]; totalValue: number }> = {};
@@ -423,9 +475,9 @@ function ComercialPage() {
                             <span className="bg-slate-100 px-1 py-0.5 rounded text-[8px]">{sw?.region}</span>
                           </div>
 
-                          {/* Fast Action Stage Shift */}
+                          {/* Fast Action Stage Shift & Delete */}
                           {isMaster && (
-                            <div className="hidden group-hover:flex absolute right-1.5 top-1.5 bg-slate-50 border rounded shadow-xs p-0.5 gap-1 z-10">
+                            <div className="hidden group-hover:flex absolute right-1.5 top-1.5 bg-white border border-slate-200 rounded-lg shadow-md p-1 gap-1 z-10">
                               <select
                                 className="text-[8px] font-semibold border-0 bg-transparent py-0 px-1 focus:ring-0 outline-none"
                                 value={opp.stage}
@@ -435,6 +487,18 @@ function ComercialPage() {
                                   <option key={stg.id} value={stg.id}>{stg.label}</option>
                                 ))}
                               </select>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-5 w-5 text-rose-600 hover:bg-rose-50"
+                                onClick={() => {
+                                  if (confirm("Excluir esta oportunidade?")) {
+                                    deleteOppMutation.mutate(opp.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
                             </div>
                           )}
                         </Card>
@@ -462,13 +526,14 @@ function ComercialPage() {
                     <TableHead>E-mail</TableHead>
                     <TableHead>Celular</TableHead>
                     <TableHead className="text-center">Status</TableHead>
+                    {isMaster && <TableHead className="text-center">Ações</TableHead>}
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {saleswomen.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground text-xs">
-                        Nenhuma vendedora cadastrada.
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground text-xs">
+                        Nenhuma vendedora cadastrada. Clique em "Nova Vendedora" para começar.
                       </TableCell>
                     </TableRow>
                   ) : (
@@ -485,6 +550,22 @@ function ComercialPage() {
                         <TableCell className="text-center">
                           <Badge className="bg-emerald-100 text-emerald-800 border-emerald-200">Ativa</Badge>
                         </TableCell>
+                        {isMaster && (
+                          <TableCell className="text-center">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 text-rose-600 hover:bg-rose-50"
+                              onClick={() => {
+                                if (confirm(`Excluir a vendedora ${row.name}?`)) {
+                                  deleteSaleswomanMutation.mutate(row.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </TableCell>
+                        )}
                       </TableRow>
                     ))
                   )}
