@@ -26,6 +26,7 @@ import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authentic
 import { Route as AuthenticatedEngenhariaRouteImport } from './routes/_authenticated/engenharia'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
+import { Route as AuthenticatedLojaVirtualRouteImport } from './routes/_authenticated/lojavirtual'
 import { Route as AuthenticatedComercialRouteImport } from './routes/_authenticated/comercial'
 
 const AuthRoute = AuthRouteImport.update({
@@ -115,6 +116,11 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
+const AuthenticatedLojaVirtualRoute = AuthenticatedLojaVirtualRouteImport.update({
+  id: '/lojavirtual',
+  path: '/lojavirtual',
+  getParentRoute: () => AuthenticatedRoute,
+} as any)
 const AuthenticatedComercialRoute = AuthenticatedComercialRouteImport.update({
   id: '/comercial',
   path: '/comercial',
@@ -126,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/comercial': typeof AuthenticatedComercialRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/lojavirtual': typeof AuthenticatedLojaVirtualRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/engenharia': typeof AuthenticatedEngenhariaRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
@@ -145,6 +152,7 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/comercial': typeof AuthenticatedComercialRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/lojavirtual': typeof AuthenticatedLojaVirtualRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/engenharia': typeof AuthenticatedEngenhariaRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
@@ -166,6 +174,7 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/_authenticated/comercial': typeof AuthenticatedComercialRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
+  '/_authenticated/lojavirtual': typeof AuthenticatedLojaVirtualRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/engenharia': typeof AuthenticatedEngenhariaRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
@@ -188,6 +197,7 @@ export interface FileRouteTypes {
     | '/comercial'
     | '/configuracoes'
     | '/dashboard'
+    | '/lojavirtual'
     | '/engenharia'
     | '/financeiro'
     | '/historico'
@@ -207,6 +217,7 @@ export interface FileRouteTypes {
     | '/comercial'
     | '/configuracoes'
     | '/dashboard'
+    | '/lojavirtual'
     | '/engenharia'
     | '/financeiro'
     | '/historico'
@@ -227,6 +238,7 @@ export interface FileRouteTypes {
     | '/_authenticated/comercial'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
+    | '/_authenticated/lojavirtual'
     | '/_authenticated/engenharia'
     | '/_authenticated/financeiro'
     | '/_authenticated/historico'
@@ -375,6 +387,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedComercialRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/lojavirtual': {
+      id: '/_authenticated/lojavirtual'
+      path: '/lojavirtual'
+      fullPath: '/lojavirtual'
+      preLoaderRoute: typeof AuthenticatedLojaVirtualRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
   }
 }
 
@@ -386,6 +405,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedLancamentoRoute: typeof AuthenticatedLancamentoRoute
+  AuthenticatedLojaVirtualRoute: typeof AuthenticatedLojaVirtualRoute
   AuthenticatedMarketingRoute: typeof AuthenticatedMarketingRoute
   AuthenticatedMercadolivreRoute: typeof AuthenticatedMercadolivreRoute
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
@@ -402,6 +422,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedLancamentoRoute: AuthenticatedLancamentoRoute,
+  AuthenticatedLojaVirtualRoute: AuthenticatedLojaVirtualRoute,
   AuthenticatedMarketingRoute: AuthenticatedMarketingRoute,
   AuthenticatedMercadolivreRoute: AuthenticatedMercadolivreRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,

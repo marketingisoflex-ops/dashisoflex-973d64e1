@@ -405,6 +405,7 @@ function MercadoLivrePage() {
   const totalPages = Math.ceil(processedTableData.length / pageSize) || 1;
 
   // Top Card Metrics (Filtered Period)
+  // Top Card Metrics (Filtered Period)
   const metrics = useMemo(() => {
     if (filteredDailyData.length === 0) {
       return {
@@ -417,6 +418,8 @@ function MercadoLivrePage() {
         roas: 0,
         acos: 0,
         vendasAds: 0,
+        totalVisits: 0,
+        avgConversion: 0,
         // Growth Trends
         ordersGrowth: 0,
         isOrdersPositive: true,
@@ -428,6 +431,10 @@ function MercadoLivrePage() {
         isAdsPositive: true,
         revenueGrowth: 0,
         isRevenuePositive: true,
+        visitsGrowth: 0,
+        isVisitsPositive: true,
+        conversionGrowth: 0,
+        isConversionPositive: true,
       };
     }
 
@@ -439,6 +446,8 @@ function MercadoLivrePage() {
     const vendasAds = filteredDailyData.reduce((acc, curr) => acc + curr.vendas_ads, 0);
     const roas = investAds > 0 ? vendasAds / investAds : 0;
     const acos = vendasAds > 0 ? (investAds / vendasAds) * 100 : 0;
+    const totalVisits = filteredDailyData.reduce((acc, curr) => acc + Number(curr.visitas || 0), 0);
+    const avgConversion = totalVisits > 0 ? (totalOrders / totalVisits) * 100 : 0;
 
     // Top Product
     const productCounts: Record<string, number> = {};
@@ -462,6 +471,8 @@ function MercadoLivrePage() {
     let roasGrowth = 0, isRoasPositive = true;
     let adsGrowth = 0, isAdsPositive = true;
     let revenueGrowth = 0, isRevenuePositive = true;
+    let visitsGrowth = 0, isVisitsPositive = true;
+    let conversionGrowth = 0, isConversionPositive = true;
 
     if (dateStart && dateEnd) {
       const currStart = new Date(dateStart);
@@ -480,6 +491,8 @@ function MercadoLivrePage() {
       const prevAds = prevData.reduce((acc, curr) => acc + Number(curr.invest_ads || 0), 0);
       const prevVendasAds = prevData.reduce((acc, curr) => acc + Number(curr.vendas_ads || 0), 0);
       const prevRoas = prevAds > 0 ? prevVendasAds / prevAds : 0;
+      const prevVisits = prevData.reduce((acc, curr) => acc + Number(curr.visitas || 0), 0);
+      const prevConversion = prevVisits > 0 ? (prevOrders / prevVisits) * 100 : 0;
 
       if (prevOrders > 0) {
         ordersGrowth = ((totalOrders - prevOrders) / prevOrders) * 100;
@@ -501,6 +514,14 @@ function MercadoLivrePage() {
         revenueGrowth = ((totalRevenue - prevRevenue) / prevRevenue) * 100;
         isRevenuePositive = revenueGrowth >= 0;
       }
+      if (prevVisits > 0) {
+        visitsGrowth = ((totalVisits - prevVisits) / prevVisits) * 100;
+        isVisitsPositive = visitsGrowth >= 0;
+      }
+      if (prevConversion > 0) {
+        conversionGrowth = avgConversion - prevConversion;
+        isConversionPositive = conversionGrowth >= 0;
+      }
     }
 
     return {
@@ -513,6 +534,8 @@ function MercadoLivrePage() {
       roas,
       acos,
       vendasAds,
+      totalVisits,
+      avgConversion,
       // Growth percentages absolute
       ordersGrowth: Math.abs(ordersGrowth),
       isOrdersPositive,
@@ -524,6 +547,10 @@ function MercadoLivrePage() {
       isAdsPositive,
       revenueGrowth: Math.abs(revenueGrowth),
       isRevenuePositive,
+      visitsGrowth: Math.abs(visitsGrowth),
+      isVisitsPositive,
+      conversionGrowth: Math.abs(conversionGrowth),
+      isConversionPositive,
     };
   }, [filteredDailyData, dbData, dateStart, dateEnd]);
 
@@ -1051,17 +1078,25 @@ function MercadoLivrePage() {
       {/* Main Print/Display Container */}
       <div id="print-section" className="space-y-6">
         
-        {/* TOP CARDS ROW (PEDIDOS, TICKET MÉDIO, ROAS, INVEST. ADS) */}
+        {/* TOP CARDS ROW (FATURAMENTO, PEDIDOS, CONVERSÃO, VISITAS, ROAS, INVEST. ADS) */}
         {isLoading ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 no-print">
-            {Array.from({ length: 4 }).map((_, i) => (
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 no-print">
+            {Array.from({ length: 6 }).map((_, i) => (
               <Card key={i} className="animate-pulse border-slate-200">
                 <CardContent className="h-28 pt-6 bg-slate-50/50" />
               </Card>
             ))}
           </div>
         ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            <KpiCardNew
+              label={`FATURAMENTO (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
+              value={fmtBRL(metrics.totalRevenue)}
+              trend={`${metrics.revenueGrowth.toFixed(1)}% vs anterior`}
+              isPositive={metrics.isRevenuePositive}
+              icon={Coins}
+              color="indigo"
+            />
             <KpiCardNew
               label={`PEDIDOS (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
               value={String(metrics.totalOrders)}
@@ -1071,11 +1106,19 @@ function MercadoLivrePage() {
               color="indigo"
             />
             <KpiCardNew
-              label={`TICKET MÉDIO (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
-              value={fmtBRL(metrics.avgTicket)}
-              trend={`${metrics.ticketGrowth.toFixed(1)}% vs anterior`}
-              isPositive={metrics.isTicketPositive}
-              icon={Coins}
+              label={`CONVERSÃO (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
+              value={`${metrics.avgConversion.toFixed(2)}%`}
+              trend={`${metrics.conversionGrowth >= 0 ? "+" : ""}${metrics.conversionGrowth.toFixed(2)}pp vs anterior`}
+              isPositive={metrics.isConversionPositive}
+              icon={Sparkles}
+              color="indigo"
+            />
+            <KpiCardNew
+              label={`VISITAS (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
+              value={String(metrics.totalVisits)}
+              trend={`${metrics.visitsGrowth.toFixed(1)}% vs anterior`}
+              isPositive={metrics.isVisitsPositive}
+              icon={Activity}
               color="indigo"
             />
             <KpiCardNew
@@ -1083,7 +1126,7 @@ function MercadoLivrePage() {
               value={metrics.roas.toFixed(2)}
               trend={`${metrics.roasGrowth.toFixed(1)}% vs anterior`}
               isPositive={metrics.isRoasPositive}
-              icon={Activity}
+              icon={TrendingUp}
               color="indigo"
               highlightAlert={metrics.roas < 5}
             />
@@ -1091,7 +1134,7 @@ function MercadoLivrePage() {
               label={`INVEST. ADS (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`}
               value={fmtBRL(metrics.investAds)}
               trend={`${metrics.adsGrowth.toFixed(1)}% vs anterior`}
-              isPositive={!metrics.isAdsPositive} // Typically down in ads investment could be colored green/red based on preference, keeping simple
+              isPositive={!metrics.isAdsPositive}
               icon={Percent}
               color="indigo"
             />
@@ -1198,6 +1241,139 @@ function MercadoLivrePage() {
         )}
 
         {/* Tab Controls for Charts and Tables */}
+        {/* ── WEEKLY SMART CONVERSION ANALYSIS ─────────────────────── */}
+        {!isLoading && weeklyData.length > 0 && (
+          <Card className="border border-yellow-200/70 shadow-sm rounded-2xl overflow-hidden bg-gradient-to-br from-yellow-50/60 to-white">
+            <CardHeader className="pb-3 border-b border-yellow-100/60 flex flex-row flex-wrap items-center justify-between gap-4 bg-gradient-to-r from-yellow-100/40 to-white">
+              <div>
+                <CardTitle className="text-sm font-black text-slate-800 flex items-center gap-2">
+                  <Sparkles className="h-4.5 w-4.5 text-yellow-500" />
+                  Análise Semanal Inteligente — Conversão
+                </CardTitle>
+                <CardDescription className="text-[11px] font-semibold text-slate-500">
+                  Breakdown automático semana a semana com métricas de conversão e tendências
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="p-4">
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                {weeklyData.map((week: any, idx: number) => {
+                  const conv = week.rate_conv || 0;
+                  const prevWeek = idx > 0 ? weeklyData[idx - 1] : null;
+                  const prevConv = prevWeek ? (prevWeek as any).rate_conv || 0 : 0;
+                  const convDelta = prevWeek ? conv - prevConv : 0;
+                  const isConvUp = convDelta >= 0;
+                  const metaPct = week.meta_dia > 0 ? (week.vendas_totais / week.meta_dia) * 100 : 0;
+                  const roas = week.invest_ads > 0 ? week.vendas_ads / week.invest_ads : 0;
+
+                  // Find best conversion day within this week
+                  const weekStart = week.ref_date;
+                  const [wy, wm, wd] = weekStart.split("-").map(Number);
+                  const weekStartDate = new Date(wy, wm - 1, wd);
+                  const weekEndDate = new Date(weekStartDate);
+                  weekEndDate.setDate(weekStartDate.getDate() + 6);
+                  const weekEndIso = `${weekEndDate.getFullYear()}-${String(weekEndDate.getMonth() + 1).padStart(2, "0")}-${String(weekEndDate.getDate()).padStart(2, "0")}`;
+
+                  const daysInWeek = filteredDailyData.filter(
+                    (d) => d.ref_date >= weekStart && d.ref_date <= weekEndIso
+                  );
+                  const bestDay = daysInWeek.length > 0
+                    ? daysInWeek.reduce((best, d) => {
+                        const dConv = d.visitas > 0 ? (d.pedidos / d.visitas) * 100 : 0;
+                        const bConv = best.visitas > 0 ? (best.pedidos / best.visitas) * 100 : 0;
+                        return dConv > bConv ? d : best;
+                      })
+                    : null;
+                  const bestDayConv = bestDay && bestDay.visitas > 0 ? (bestDay.pedidos / bestDay.visitas) * 100 : 0;
+
+                  return (
+                    <div key={week.id} className="border border-yellow-200/60 rounded-xl p-4 bg-white hover:shadow-md transition-all duration-200">
+                      {/* Week Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-black text-slate-700">
+                          {week.label || `Semana ${idx + 1}`}
+                        </span>
+                        <Badge className={`text-[9px] font-bold border-none ${metaPct >= 100 ? "bg-emerald-100 text-emerald-700" : metaPct >= 80 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                          {metaPct.toFixed(0)}% META
+                        </Badge>
+                      </div>
+
+                      {/* Conversion Highlight */}
+                      <div className="flex items-center gap-3 mb-3 p-2.5 rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50/50 border border-yellow-200/40">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400/20 text-yellow-600">
+                          <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-bold text-yellow-600 tracking-wider block">TAXA DE CONVERSÃO</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-black text-slate-800">{conv.toFixed(2)}%</span>
+                            {prevWeek && (
+                              <span className={`text-[10px] font-bold flex items-center gap-0.5 ${isConvUp ? "text-emerald-600" : "text-rose-600"}`}>
+                                {isConvUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                                {convDelta >= 0 ? "+" : ""}{convDelta.toFixed(2)}pp
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Metrics Grid */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                          <span className="text-[8px] font-bold text-slate-400 block tracking-wider">FATURAMENTO</span>
+                          <span className="text-xs font-black text-slate-800">{fmtBRL(week.vendas_totais)}</span>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                          <span className="text-[8px] font-bold text-slate-400 block tracking-wider">PEDIDOS</span>
+                          <span className="text-xs font-black text-slate-800">{week.pedidos}</span>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                          <span className="text-[8px] font-bold text-slate-400 block tracking-wider">VISITAS</span>
+                          <span className="text-xs font-black text-slate-800">{week.visitas}</span>
+                        </div>
+                      </div>
+
+                      {/* ROAS + Best Day */}
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="font-bold text-slate-500">ROAS: <span className={`${roas >= 5 ? "text-emerald-600" : "text-amber-600"}`}>{roas.toFixed(2)}</span></span>
+                        {bestDay && (
+                          <span className="font-bold text-slate-500 truncate ml-2">
+                            Melhor dia: <span className="text-yellow-600">{bestDay.ref_date.slice(5)} ({bestDayConv.toFixed(1)}%)</span>
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Weekly Conversion Chart */}
+              <div className="mt-4 border-t border-yellow-100 pt-4">
+                <span className="text-xs font-black text-slate-700 block mb-2">📊 Tendência de Conversão Semanal</span>
+                <ResponsiveContainer width="100%" height={160}>
+                  <AreaChart data={weeklyData}>
+                    <defs>
+                      <linearGradient id="convGradientML" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
+                        <stop offset="95%" stopColor="#eab308" stopOpacity={0.02} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" stroke="#fef3c7" />
+                    <XAxis
+                      dataKey="label"
+                      tick={{ fontSize: 9, fill: "#64748b" }}
+                      tickFormatter={(v) => v.split(" ")[1] || v}
+                    />
+                    <YAxis tick={{ fontSize: 9, fill: "#64748b" }} tickFormatter={(v) => `${v.toFixed(1)}%`} />
+                    <Tooltip formatter={(value: number) => `${value.toFixed(2)}%`} contentStyle={{ borderRadius: "12px", border: "1px solid #fde68a", fontSize: "11px" }} />
+                    <Area type="monotone" dataKey="rate_conv" name="Conversão (%)" stroke="#eab308" fill="url(#convGradientML)" strokeWidth={2.5} dot={{ fill: "#eab308", r: 4, strokeWidth: 2, stroke: "#fff" }} />
+                  </AreaChart>
+                </ResponsiveContainer>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full no-print">
           <TabsList className="bg-slate-100 p-1 border">
             <TabsTrigger value="overview" className="text-xs font-bold">

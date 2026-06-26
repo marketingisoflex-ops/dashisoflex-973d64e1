@@ -15,7 +15,8 @@ export type AppModule =
   | "configuracoes"
   | "usuarios"
   | "top_produtos"
-  | "mercadolivre";
+  | "mercadolivre"
+  | "lojavirtual";
 
 export function useMe() {
   const fetchMe = useServerFn(getMe);
