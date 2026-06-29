@@ -1,6 +1,7 @@
 import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useState, useEffect, useMemo } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useServerFn } from "@tanstack/react-start";
 import { listAudit } from "@/lib/users.functions";
 import { useMe } from "@/hooks/use-me";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
@@ -140,10 +141,11 @@ function ConfiguracoesPage() {
     { id: "s3", device: "iPad Air", browser: "Chrome Mobile 122.0", ip: "177.102.55.84", location: "São Paulo, SP", lastActive: "Há 2 horas", isCurrent: false },
   ]);
 
+  const fetchAudit = useServerFn(listAudit);
   // Fetch real audit logs using react-query (only if admin)
   const { data: auditLogs = [], isLoading: isLoadingAudits } = useQuery({
     queryKey: ["audit_logs"],
-    queryFn: () => listAudit(),
+    queryFn: () => fetchAudit(),
     enabled: isMaster,
   });
 
