@@ -34,7 +34,9 @@ import {
   List,
   Compass,
   FileCode,
-  Info
+  Info,
+  PanelRight,
+  X as XIcon
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -89,6 +91,30 @@ export function ThreeDCanvas() {
   
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const safeDisposeMesh = (object: any) => {
+    if (!object) return;
+    object.traverse((child: any) => {
+      if (child.isMesh) {
+        if (child.geometry) child.geometry.dispose();
+        if (child.material) {
+          if (Array.isArray(child.material)) {
+            child.material.forEach((mat) => mat.dispose());
+          } else {
+            child.material.dispose();
+          }
+        }
+      }
+    });
+  };
   
   // Projects & Components State
   const [components, setComponents] = useState<ParametricComponent[]>([]);
@@ -109,6 +135,9 @@ export function ThreeDCanvas() {
 
   // Active properties tab: 'object' | 'parametric' | 'material'
   const [propertiesTab, setPropertiesTab] = useState<"object" | "parametric" | "material">("object");
+
+  // Mobile properties panel toggle
+  const [mobilePropsOpen, setMobilePropsOpen] = useState(false);
 
   // Three.js instances refs
   const sceneRef = useRef<any>(null);
@@ -321,10 +350,10 @@ export function ThreeDCanvas() {
     cameraRef.current = camera;
 
     // Renderer
-    const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true });
+    const renderer = new THREE.WebGLRenderer({ antialias: !isMobile, alpha: true, preserveDrawingBuffer: true });
     renderer.setSize(container.clientWidth, container.clientHeight);
-    renderer.setPixelRatio(window.devicePixelRatio);
-    renderer.shadowMap.enabled = true;
+    renderer.setPixelRatio(isMobile ? 1 : Math.min(window.devicePixelRatio, 2));
+    renderer.shadowMap.enabled = !isMobile;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.0;
@@ -510,6 +539,7 @@ export function ThreeDCanvas() {
     // Remove old mesh
     const oldMesh = objectsMapRef.current.get(comp.id);
     if (oldMesh) {
+      safeDisposeMesh(oldMesh);
       sceneRef.current.remove(oldMesh);
       objectsMapRef.current.delete(comp.id);
     }
@@ -559,29 +589,31 @@ export function ThreeDCanvas() {
       return mesh;
     };
 
+    // Shared materials & geometries for joints to prevent multiple allocations
+    const connectorMat = new THREE.MeshStandardMaterial({
+      color: new THREE.Color(comp.connectorColor || "#27272a"),
+      roughness: 0.35,
+      metalness: 0.8,
+    });
+
+    const jointGeo = isRound
+      ? new THREE.SphereGeometry(dTube * 0.82, isMobile ? 6 : 12, isMobile ? 6 : 12)
+      : new THREE.BoxGeometry(dTube * 1.25, dTube * 1.25, dTube * 1.25);
+
+    const boltGeo = new THREE.CylinderGeometry(dTube * 0.18, dTube * 0.18, dTube * 0.3, 6);
+    const boltMat = getSteelMaterial(THREE, "#94a3b8");
+
     const addConnectorJoint = (x: number, y: number, z: number) => {
-      const connectorMat = new THREE.MeshStandardMaterial({
-        color: new THREE.Color(comp.connectorColor || "#27272a"),
-        roughness: 0.35,
-        metalness: 0.8,
-      });
-
-      const jointGeo = isRound
-        ? new THREE.SphereGeometry(dTube * 0.82, 12, 12)
-        : new THREE.BoxGeometry(dTube * 1.25, dTube * 1.25, dTube * 1.25);
-
       const joint = new THREE.Mesh(jointGeo, connectorMat);
       joint.position.set(x, y, z);
-      joint.castShadow = true;
+      joint.castShadow = !isMobile;
       group.add(joint);
       
       // Bolt details for realistic modular joint visual
-      const boltGeo = new THREE.CylinderGeometry(dTube * 0.18, dTube * 0.18, dTube * 0.3, 6);
-      const boltMat = getSteelMaterial(THREE, "#94a3b8");
       const bolt = new THREE.Mesh(boltGeo, boltMat);
       bolt.rotation.x = Math.PI / 2;
       bolt.position.set(x, y, z + dTube * 0.58);
-      bolt.castShadow = true;
+      bolt.castShadow = !isMobile;
       group.add(bolt);
     };
 
@@ -591,58 +623,58 @@ export function ThreeDCanvas() {
     const wheelD = wheelsD / 1000;
     const baseOffset = hasWheels ? (wheelD + 0.05) : 0;
 
+    // Shared geometries and materials for Caster Wheels to prevent multiple allocations
+    const forkMat = getSteelMaterial(THREE, comp.connectorColor || "#27272a");
+    const plateGeo = new THREE.BoxGeometry(wheelD * 0.7, 0.005, wheelD * 0.7);
+    const armW = wheelD * 0.08;
+    const armH = baseOffset - wheelD / 2 - 0.005;
+    const armD = wheelD * 0.35;
+    const armGeo = new THREE.BoxGeometry(armW, armH, armD);
+    const tireGeo = new THREE.CylinderGeometry(wheelD / 2, wheelD / 2, wheelD * 0.24, isMobile ? 12 : 24);
+    const tireMat = getCasterMaterial(THREE);
+    const rimGeo = new THREE.CylinderGeometry(wheelD * 0.34, wheelD * 0.34, wheelD * 0.26, isMobile ? 8 : 16);
+    const rimMat = getSteelMaterial(THREE, "#cbd5e1");
+    const axleGeo = new THREE.CylinderGeometry(wheelD / 8, wheelD / 8, wheelD * 0.44, 8);
+    const axleMat = getSteelMaterial(THREE, "#475569");
+    const brakeGeo = new THREE.BoxGeometry(wheelD * 0.1, wheelD * 0.35, wheelD * 0.16);
+    const brakeMat = getPlasticMaterial(THREE, "#ef4444");
+
     const addCasterWheel = (x: number, z: number) => {
       const wheelGroup = new THREE.Group();
       wheelGroup.position.set(x, 0, z);
 
-      const forkMat = getSteelMaterial(THREE, comp.connectorColor || "#27272a");
-
       // Caster top bracket plate
-      const plateGeo = new THREE.BoxGeometry(wheelD * 0.7, 0.005, wheelD * 0.7);
       const plate = new THREE.Mesh(plateGeo, forkMat);
       plate.position.y = baseOffset - 0.005;
-      plate.castShadow = true;
+      plate.castShadow = !isMobile;
       wheelGroup.add(plate);
 
-      // Detailed double yoke arms holding the wheel from both sides
-      const armW = wheelD * 0.08;
-      const armH = baseOffset - wheelD / 2 - 0.005;
-      const armD = wheelD * 0.35;
-      
-      const armGeo = new THREE.BoxGeometry(armW, armH, armD);
-      
       // Left Fork Arm
       const armL = new THREE.Mesh(armGeo, forkMat);
       armL.position.set(-wheelD * 0.18, wheelD / 2 + armH / 2, 0);
-      armL.castShadow = true;
+      armL.castShadow = !isMobile;
       wheelGroup.add(armL);
       
       // Right Fork Arm
       const armR = new THREE.Mesh(armGeo, forkMat);
       armR.position.set(wheelD * 0.18, wheelD / 2 + armH / 2, 0);
-      armR.castShadow = true;
+      armR.castShadow = !isMobile;
       wheelGroup.add(armR);
 
       // Wheel outer tire (silicone/rubber texture)
-      const tireGeo = new THREE.CylinderGeometry(wheelD / 2, wheelD / 2, wheelD * 0.24, 24);
-      const tireMat = getCasterMaterial(THREE);
       const tire = new THREE.Mesh(tireGeo, tireMat);
       tire.rotation.z = Math.PI / 2;
       tire.position.y = wheelD / 2;
-      tire.castShadow = true;
+      tire.castShadow = !isMobile;
       wheelGroup.add(tire);
       
       // Wheel core/rim (shiny metallic center)
-      const rimGeo = new THREE.CylinderGeometry(wheelD * 0.34, wheelD * 0.34, wheelD * 0.26, 16);
-      const rimMat = getSteelMaterial(THREE, "#cbd5e1");
       const rim = new THREE.Mesh(rimGeo, rimMat);
       rim.rotation.z = Math.PI / 2;
       rim.position.y = wheelD / 2;
       wheelGroup.add(rim);
 
       // Center metal axle bolt
-      const axleGeo = new THREE.CylinderGeometry(wheelD / 8, wheelD / 8, wheelD * 0.44, 12);
-      const axleMat = getSteelMaterial(THREE, "#475569");
       const axle = new THREE.Mesh(axleGeo, axleMat);
       axle.rotation.z = Math.PI / 2;
       axle.position.y = wheelD / 2;
@@ -650,12 +682,10 @@ export function ThreeDCanvas() {
 
       // Red Brake Lever
       if (comp.wheelsType === "com_trava") {
-        const brakeGeo = new THREE.BoxGeometry(wheelD * 0.1, wheelD * 0.35, wheelD * 0.16);
-        const brakeMat = getPlasticMaterial(THREE, "#ef4444"); // Organization safety red
         const brake = new THREE.Mesh(brakeGeo, brakeMat);
         brake.position.set(0, wheelD * 0.78, wheelD * 0.22);
         brake.rotation.x = Math.PI / 6;
-        brake.castShadow = true;
+        brake.castShadow = !isMobile;
         wheelGroup.add(brake);
       }
 
@@ -781,106 +811,113 @@ export function ThreeDCanvas() {
         shelfGroup.position.set(0, shelfH, 0);
         shelfGroup.rotation.x = angleRad;
 
+      // 2. Shelves & Lanes & Bins (Optimized)
+      const frameGeo = new THREE.BoxGeometry(w, 0.03, 0.03);
+      const sideFrameGeo = new THREE.BoxGeometry(0.03, 0.03, d);
+      const railGeo = new THREE.BoxGeometry(0.01, 0.015, d - 0.06);
+
+      const rollerCount = isMobile ? 4 : 10;
+      const rollerRadius = 0.01;
+      const rollerWidth = 0.08;
+      const rollerGeo = new THREE.CylinderGeometry(rollerRadius, rollerRadius, rollerWidth, isMobile ? 5 : 8);
+      const rollerMat = getPlasticMaterial(THREE, "#eab308");
+
+      const laneW = w / lanes;
+      const binW = laneW * 0.72;
+      const binH = 0.12;
+      const binD = d * 0.4;
+      const binMat = getPlasticMaterial(THREE, binColorHex);
+
+      const botGeo = new THREE.BoxGeometry(binW, 0.008, binD);
+      const backGeo = new THREE.BoxGeometry(binW, binH, 0.008);
+      const sideGeo = new THREE.BoxGeometry(0.008, binH, binD);
+      const frontGeo = new THREE.BoxGeometry(binW, binH * 0.4, 0.008);
+
+      const createIndustrialBin = () => {
+        const binGroup = new THREE.Group();
+        
+        // Bottom Plate
+        const bot = new THREE.Mesh(botGeo, binMat);
+        bot.position.y = 0.004;
+        bot.castShadow = !isMobile;
+        binGroup.add(bot);
+        
+        // Back wall
+        const back = new THREE.Mesh(backGeo, binMat);
+        back.position.set(0, binH / 2, -binD / 2 + 0.004);
+        back.castShadow = !isMobile;
+        binGroup.add(back);
+        
+        // Side walls
+        const sideL = new THREE.Mesh(sideGeo, binMat);
+        sideL.position.set(-binW / 2 + 0.004, binH / 2, 0);
+        sideL.castShadow = !isMobile;
+        binGroup.add(sideL);
+        
+        const sideR = new THREE.Mesh(sideGeo, binMat);
+        sideR.position.set(binW / 2 - 0.004, binH / 2, 0);
+        sideR.castShadow = !isMobile;
+        binGroup.add(sideR);
+        
+        // Slanted Front Panel
+        const front = new THREE.Mesh(frontGeo, binMat);
+        front.position.set(0, binH * 0.2, binD / 2 - 0.004);
+        front.castShadow = !isMobile;
+        binGroup.add(front);
+        
+        return binGroup;
+      };
+
+      for (let i = 0; i < shelfCount; i++) {
+        const shelfH = baseOffset + 0.35 + (i * (h - baseOffset - 0.55)) / (shelfCount - 1 || 1);
+        const shelfGroup = new THREE.Group();
+        shelfGroup.position.set(0, shelfH, 0);
+        shelfGroup.rotation.x = angleRad;
+
         // Shelf frames
-        const frameGeo = new THREE.BoxGeometry(w, 0.03, 0.03);
         const frameF = new THREE.Mesh(frameGeo, darkSteelMat);
         frameF.position.set(0, 0, d / 2);
-        frameF.castShadow = true;
+        frameF.castShadow = !isMobile;
         shelfGroup.add(frameF);
 
         const frameB = new THREE.Mesh(frameGeo, darkSteelMat);
         frameB.position.set(0, 0, -d / 2);
-        frameB.castShadow = true;
+        frameB.castShadow = !isMobile;
         shelfGroup.add(frameB);
 
-        const sideFrameGeo = new THREE.BoxGeometry(0.03, 0.03, d);
         const frameL = new THREE.Mesh(sideFrameGeo, darkSteelMat);
         frameL.position.set(-w / 2 + 0.015, 0, 0);
-        frameL.castShadow = true;
+        frameL.castShadow = !isMobile;
         shelfGroup.add(frameL);
 
         const frameR = new THREE.Mesh(sideFrameGeo, darkSteelMat);
         frameR.position.set(w / 2 - 0.015, 0, 0);
-        frameR.castShadow = true;
+        frameR.castShadow = !isMobile;
         shelfGroup.add(frameR);
 
-        // Roller rails per lane with actual individual rolling cylinders
-        const railGeo = new THREE.BoxGeometry(0.01, 0.015, d - 0.06);
-
         for (let lane = 0; lane < lanes; lane++) {
-          const laneW = w / lanes;
           const laneX = -w / 2 + laneW * (lane + 0.5);
 
           // Render metal guide profiles
           const rail1 = new THREE.Mesh(railGeo, steelMat);
           rail1.position.set(laneX - 0.05, 0.007, 0);
-          rail1.castShadow = true;
+          rail1.castShadow = !isMobile;
           shelfGroup.add(rail1);
 
           const rail2 = new THREE.Mesh(railGeo, steelMat);
           rail2.position.set(laneX + 0.05, 0.007, 0);
-          rail2.castShadow = true;
+          rail2.castShadow = !isMobile;
           shelfGroup.add(rail2);
 
-          // Draw actual small rollers
-          const rollerCount = 10;
-          const rollerRadius = 0.01;
-          const rollerWidth = 0.08;
-          const rollerGeo = new THREE.CylinderGeometry(rollerRadius, rollerRadius, rollerWidth, 8);
-          const rollerMat = getPlasticMaterial(THREE, "#eab308"); // Yellow industrial rollers
-
+          // Draw rollers (reusing geometry)
           for (let r = 0; r < rollerCount; r++) {
             const rZ = -d / 2 + 0.05 + (r * (d - 0.1)) / (rollerCount - 1);
             const roller = new THREE.Mesh(rollerGeo, rollerMat);
             roller.rotation.z = Math.PI / 2;
             roller.position.set(laneX, 0.012, rZ);
-            roller.castShadow = true;
+            roller.castShadow = !isMobile;
             shelfGroup.add(roller);
           }
-
-          // Detailed industrial open bins
-          const binW = laneW * 0.72;
-          const binH = 0.12;
-          const binD = d * 0.4;
-          const binMat = getPlasticMaterial(THREE, binColorHex);
-          
-          const createIndustrialBin = () => {
-            const binGroup = new THREE.Group();
-            
-            // Bottom Plate
-            const botGeo = new THREE.BoxGeometry(binW, 0.008, binD);
-            const bot = new THREE.Mesh(botGeo, binMat);
-            bot.position.y = 0.004;
-            bot.castShadow = true;
-            binGroup.add(bot);
-            
-            // Back wall
-            const backGeo = new THREE.BoxGeometry(binW, binH, 0.008);
-            const back = new THREE.Mesh(backGeo, binMat);
-            back.position.set(0, binH / 2, -binD / 2 + 0.004);
-            back.castShadow = true;
-            binGroup.add(back);
-            
-            // Side walls
-            const sideGeo = new THREE.BoxGeometry(0.008, binH, binD);
-            const sideL = new THREE.Mesh(sideGeo, binMat);
-            sideL.position.set(-binW / 2 + 0.004, binH / 2, 0);
-            sideL.castShadow = true;
-            binGroup.add(sideL);
-            
-            const sideR = sideL.clone();
-            sideR.position.x = binW / 2 - 0.004;
-            binGroup.add(sideR);
-            
-            // Slanted Front Panel
-            const frontGeo = new THREE.BoxGeometry(binW, binH * 0.4, 0.008);
-            const front = new THREE.Mesh(frontGeo, binMat);
-            front.position.set(0, binH * 0.2, binD / 2 - 0.004);
-            front.castShadow = true;
-            binGroup.add(front);
-            
-            return binGroup;
-          };
 
           const bin1 = createIndustrialBin();
           bin1.position.set(laneX, 0.016, -d / 4);
@@ -1165,6 +1202,7 @@ export function ThreeDCanvas() {
   const deleteComponent = (id: string) => {
     const mesh = objectsMapRef.current.get(id);
     if (mesh && sceneRef.current) {
+      safeDisposeMesh(mesh);
       sceneRef.current.remove(mesh);
       objectsMapRef.current.delete(id);
     }
@@ -1194,7 +1232,10 @@ export function ThreeDCanvas() {
   const clearAll = () => {
     if (confirm("Deseja realmente limpar toda a área de trabalho do Blender?")) {
       objectsMapRef.current.forEach((obj) => {
-        if (sceneRef.current) sceneRef.current.remove(obj);
+        if (sceneRef.current) {
+          safeDisposeMesh(obj);
+          sceneRef.current.remove(obj);
+        }
       });
       objectsMapRef.current.clear();
       setComponents([]);
@@ -1223,7 +1264,10 @@ export function ThreeDCanvas() {
   const loadProject = (project: SavedProject) => {
     // Clear current scene meshes
     objectsMapRef.current.forEach((obj) => {
-      if (sceneRef.current) sceneRef.current.remove(obj);
+      if (sceneRef.current) {
+        safeDisposeMesh(obj);
+        sceneRef.current.remove(obj);
+      }
     });
     objectsMapRef.current.clear();
 
@@ -1462,7 +1506,7 @@ export function ThreeDCanvas() {
   };
 
   return (
-    <div className="flex flex-col h-[750px] bg-[#1e1e1e] text-[#c4c4c4] rounded-2xl overflow-hidden border border-[#2e2e2e] shadow-2xl font-mono text-xs select-none">
+    <div className="flex flex-col h-[95vh] md:h-[750px] bg-[#1e1e1e] text-[#c4c4c4] rounded-2xl overflow-hidden border border-[#2e2e2e] shadow-2xl font-mono text-xs select-none">
       
       {/* Hidden file uploader for GLB */}
       <input 
@@ -1474,16 +1518,16 @@ export function ThreeDCanvas() {
       />
 
       {/* 1. Blender Style Header Menu Bar */}
-      <div className="h-9 bg-[#2e2e2e] border-b border-[#1a1a1a] flex items-center px-4 justify-between select-none">
-        <div className="flex items-center gap-6">
+      <div className="h-auto min-h-9 py-1 md:py-0 bg-[#2e2e2e] border-b border-[#1a1a1a] flex flex-wrap items-center px-2 md:px-4 justify-between gap-1 md:gap-2 select-none shrink-0">
+        <div className="flex items-center gap-3 md:gap-6">
           {/* Logo icon Blender Style */}
           <div className="flex items-center gap-1.5 font-black text-white">
             <div className="h-4 w-4 bg-[#f27b13] rounded-full flex items-center justify-center text-[10px] text-white">B</div>
-            <span className="tracking-tight text-slate-100">Blender Isoflex 3D</span>
+            <span className="hidden sm:inline tracking-tight text-slate-100">Blender Isoflex 3D</span>
           </div>
 
           {/* Menus */}
-          <div className="flex gap-4 text-[#a3a3a3]">
+          <div className="flex gap-2 md:gap-4 text-[#a3a3a3]">
             <div className="group relative cursor-pointer hover:text-white py-1">
               File
               <div className="absolute top-7 left-0 bg-[#2e2e2e] border border-[#1a1a1a] rounded shadow-xl hidden group-hover:block z-30 w-44 py-1">
@@ -1515,17 +1559,17 @@ export function ThreeDCanvas() {
           <Input 
             value={currentProjectName}
             onChange={(e) => setCurrentProjectName(e.target.value)}
-            className="bg-[#1e1e1e] border-[#3d3d3d] h-6 text-white text-[11px] w-48 rounded font-mono px-2 focus-visible:ring-[#f27b13]"
+            className="bg-[#1e1e1e] border-[#3d3d3d] h-6 text-white text-[11px] w-28 md:w-48 rounded font-mono px-2 focus-visible:ring-[#f27b13]"
           />
-          <Badge className="bg-[#f27b13]/25 text-[#f27b13] border border-[#f27b13]/40 text-[9px] px-2 py-0.5">ACTIVE</Badge>
+          <Badge className="hidden sm:inline-flex bg-[#f27b13]/25 text-[#f27b13] border border-[#f27b13]/40 text-[9px] px-2 py-0.5">ACTIVE</Badge>
         </div>
       </div>
 
       {/* 2. Main Workspace Layout */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden relative">
         
         {/* Left Toolbar - Mode Toggles (Blender style) */}
-        <div className="w-12 bg-[#2a2a2a] border-r border-[#1a1a1a] flex flex-col items-center py-4 gap-3 text-[#8a8a8a]">
+        <div className="w-full md:w-12 h-auto py-2 md:py-4 px-4 md:px-0 bg-[#2a2a2a] border-b md:border-b-0 md:border-r border-[#1a1a1a] flex flex-row md:flex-col items-center justify-around md:justify-start gap-3 text-[#8a8a8a] shrink-0">
           <button className={`p-2 rounded-lg hover:text-white ${selectedId ? "text-[#f27b13]" : ""}`} title="Select Object">
             <Compass className="h-5 w-5" />
           </button>
@@ -1538,14 +1582,14 @@ export function ThreeDCanvas() {
           <button className="p-2 rounded-lg hover:text-white" title="Scale">
             <Maximize className="h-5 w-5" />
           </button>
-          <span className="w-6 h-[1px] bg-[#3d3d3d] my-1"></span>
+          <span className="hidden md:block w-6 h-[1px] bg-[#3d3d3d] my-1"></span>
           <button className="p-2 rounded-lg hover:text-white text-[#ef4444]" onClick={clearAll} title="Limpar Cena">
             <Trash2 className="h-5 w-5" />
           </button>
         </div>
 
         {/* Middle Area: Viewport Canvas */}
-        <div className="flex-1 flex flex-col bg-[#3d3d3d] relative">
+        <div className="flex-1 flex flex-col bg-[#3d3d3d] relative min-h-[350px] md:min-h-0">
           
           {/* Top Viewport Header */}
           <div className="absolute top-2 left-2 z-10 flex gap-2">
@@ -1556,11 +1600,11 @@ export function ThreeDCanvas() {
           </div>
 
           {/* Top Right Gizmo & Snap controls */}
-          <div className="absolute top-2 right-2 z-10 flex gap-1.5 bg-[#2e2e2e]/90 p-1 rounded-lg border border-[#1a1a1a] items-center">
+          <div className="absolute top-2 right-2 z-10 flex gap-1 md:gap-1.5 bg-[#2e2e2e]/90 p-1 rounded-lg border border-[#1a1a1a] items-center">
             <select
               value={bgTheme}
               onChange={(e) => setBgTheme(e.target.value as any)}
-              className="h-5 bg-[#1e1e1e] border-none text-[#c4c4c4] text-[9px] font-mono outline-none cursor-pointer rounded px-1 focus:ring-1 focus:ring-[#f27b13]"
+              className="h-5 bg-[#1e1e1e] border-none text-[#c4c4c4] text-[9px] font-mono outline-none cursor-pointer rounded px-1 focus:ring-1 focus:ring-[#f27b13] hidden sm:block"
               title="Cenário"
             >
               <option value="studio_dark">Dark Studio</option>
@@ -1568,15 +1612,26 @@ export function ThreeDCanvas() {
               <option value="blueprint">Blueprint</option>
               <option value="workshop">Fábrica</option>
             </select>
-            <span className="w-[1px] bg-[#3d3d3d] h-3 mx-0.5"></span>
+            <span className="w-[1px] bg-[#3d3d3d] h-3 mx-0.5 hidden sm:block"></span>
             <Button size="xs" variant="ghost" className="h-5 text-[9px] text-[#c4c4c4] hover:text-white px-1.5" onClick={() => setCameraPreset("isometric")}>ISO</Button>
-            <Button size="xs" variant="ghost" className="h-5 text-[9px] text-[#c4c4c4] hover:text-white px-1.5" onClick={() => setCameraPreset("top")}>TOP</Button>
-            <Button size="xs" variant="ghost" className="h-5 text-[9px] text-[#c4c4c4] hover:text-white px-1.5" onClick={() => setCameraPreset("front")}>FRONT</Button>
+            <Button size="xs" variant="ghost" className="h-5 text-[9px] text-[#c4c4c4] hover:text-white px-1.5 hidden sm:inline-flex" onClick={() => setCameraPreset("top")}>TOP</Button>
+            <Button size="xs" variant="ghost" className="h-5 text-[9px] text-[#c4c4c4] hover:text-white px-1.5 hidden sm:inline-flex" onClick={() => setCameraPreset("front")}>FRONT</Button>
             <span className="w-[1px] bg-[#3d3d3d] h-3 mx-0.5"></span>
             <Button size="xs" variant="ghost" className={`h-5 px-1 ${showGrid ? "text-[#f27b13]" : "text-[#c4c4c4]"}`} onClick={toggleGrid} title="Grade">
               <Grid className="h-3.5 w-3.5" />
             </Button>
           </div>
+
+          {/* Mobile: Floating Properties Toggle Button */}
+          {isMobile && (
+            <button
+              onClick={() => setMobilePropsOpen(!mobilePropsOpen)}
+              className="absolute bottom-14 right-3 z-20 bg-[#f27b13] hover:bg-[#d3680e] text-white p-2.5 rounded-full shadow-lg shadow-black/40 transition-all active:scale-95"
+              title="Propriedades"
+            >
+              <PanelRight className="h-5 w-5" />
+            </button>
+          )}
 
           {/* Loader */}
           {loading && (
@@ -1602,7 +1657,21 @@ export function ThreeDCanvas() {
         </div>
 
         {/* Right Sidebar - Blender Outliner & Property Editor */}
-        <div className="w-72 bg-[#2e2e2e] border-l border-[#1a1a1a] flex flex-col overflow-hidden">
+        {/* On mobile: absolute overlay panel that slides in */}
+        {(!isMobile || mobilePropsOpen) && (
+        <div 
+          className={`${isMobile ? "absolute inset-y-0 right-0 z-30 w-72 shadow-2xl shadow-black/50" : "w-72"} bg-[#2e2e2e] border-l border-[#1a1a1a] flex flex-col overflow-hidden`}
+          style={isMobile ? { animation: "slideInRight 0.2s ease-out" } : undefined}
+        >
+          {/* Mobile close button */}
+          {isMobile && (
+            <button
+              onClick={() => setMobilePropsOpen(false)}
+              className="absolute top-1 right-1 z-40 bg-[#1e1e1e] hover:bg-rose-600 text-white p-1 rounded-full transition-colors"
+            >
+              <XIcon className="h-4 w-4" />
+            </button>
+          )}
           
           {/* Outliner (List of Scene Objects) */}
           <div className="h-44 border-b border-[#1a1a1a] flex flex-col overflow-hidden">
@@ -2012,11 +2081,12 @@ export function ThreeDCanvas() {
             )}
           </div>
         </div>
+        )}
 
       </div>
 
       {/* 3. Bottom Blender spreadsheet / BOM list / Projects Panel */}
-      <div className="h-32 bg-[#252525] border-t border-[#1a1a1a] grid grid-cols-3 text-[10px] overflow-hidden">
+      <div className={`${isMobile ? "h-auto max-h-60 overflow-y-auto" : "h-32"} bg-[#252525] border-t border-[#1a1a1a] grid grid-cols-1 md:grid-cols-3 text-[10px] overflow-hidden`}>
         
         {/* Recent projects */}
         <div className="border-r border-[#1a1a1a] flex flex-col overflow-hidden">

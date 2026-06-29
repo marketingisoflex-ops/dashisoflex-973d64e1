@@ -1375,11 +1375,17 @@ function MercadoLivrePage() {
         )}
 
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full no-print">
-          <TabsList className="bg-slate-100 p-1 border">
-            <TabsTrigger value="overview" className="text-xs font-bold">
+          <TabsList className="bg-slate-100/80 p-1 border border-slate-200/80 rounded-xl gap-1">
+            <TabsTrigger 
+              value="overview" 
+              className="text-xs font-bold px-4 py-2 rounded-lg data-[state=active]:bg-[#FFE600] data-[state=active]:text-slate-900 data-[state=active]:shadow-sm transition-all duration-200"
+            >
               Gráficos & Performance
             </TabsTrigger>
-            <TabsTrigger value="detailed" className="text-xs font-bold">
+            <TabsTrigger 
+              value="detailed" 
+              className="text-xs font-bold px-4 py-2 rounded-lg data-[state=active]:bg-[#FFE600] data-[state=active]:text-slate-900 data-[state=active]:shadow-sm transition-all duration-200"
+            >
               Tabela Analítica & Exportação
             </TabsTrigger>
           </TabsList>

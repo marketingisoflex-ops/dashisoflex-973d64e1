@@ -247,17 +247,17 @@ function DashboardPage() {
       {/* ── Tabs ── */}
       <div className="animate-enter-3">
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "faturamento" | "vendas")}>
-          <TabsList className="glass border border-white/40 shadow-sm p-1 h-auto">
+          <TabsList className="glass border border-white/40 shadow-sm p-1 h-auto gap-1">
             <TabsTrigger
               value="faturamento"
-              className="flex items-center gap-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 transition-all duration-200"
+              className="flex items-center gap-2 font-bold data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md px-5 py-2.5 rounded-lg transition-all duration-250 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
             >
               <FileSpreadsheet className="h-4 w-4" />
               Faturamento (Faturado)
             </TabsTrigger>
             <TabsTrigger
               value="vendas"
-              className="flex items-center gap-2 font-semibold data-[state=active]:bg-white data-[state=active]:shadow-sm px-4 py-2 transition-all duration-200"
+              className="flex items-center gap-2 font-bold data-[state=active]:bg-primary data-[state=active]:text-white data-[state=active]:shadow-md px-5 py-2.5 rounded-lg transition-all duration-250 cursor-pointer hover:scale-[1.01] active:scale-[0.99]"
             >
               <Store className="h-4 w-4" />
               Venda Loja (Pedidos)

@@ -313,6 +313,26 @@
   transform: translateX(0);
 }
 
+/* Mercado Livre Active and Hover States */
+.nav-item-ml-active {
+  background: linear-gradient(135deg, #ffe600 0%, #fff159 100%) !important;
+  box-shadow:
+    0 4px 14px rgba(255, 230, 0, 0.35),
+    0 1px 3px rgba(255, 230, 0, 0.2),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2) !important;
+  color: #0d1b3e !important;
+  transform: translateX(0);
+}
+
+.nav-item-ml:hover::before {
+  background: linear-gradient(135deg, rgba(255, 230, 0, 0.18), rgba(255, 241, 89, 0.1)) !important;
+}
+
+.nav-item-ml:hover {
+  color: #d97706 !important;
+}
+
+
 /* ═══════════════════════════════════════════════
    PROGRESS BAR ANIMADA
 ════════════════════════════════════════════════ */

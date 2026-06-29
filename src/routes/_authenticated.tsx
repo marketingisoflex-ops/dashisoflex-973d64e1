@@ -302,6 +302,7 @@ function Layout() {
         {nav.map((n, i) => {
           const Icon   = n.icon;
           const active = pathname.startsWith(n.to);
+          const isML   = n.to === "/mercadolivre";
           return (
             <Link
               key={n.to}
@@ -315,15 +316,18 @@ function Layout() {
               title={collapsed && !mobile ? n.label : undefined}
               className={cn(
                 "nav-item animate-enter flex items-center gap-3 px-3 py-2.5 text-sm font-medium w-full",
+                isML && "nav-item-ml",
                 collapsed && !mobile && "justify-center px-2",
                 active
-                  ? "nav-item-active text-white"
+                  ? (isML ? "nav-item-ml-active text-slate-900" : "nav-item-active text-white")
                   : "text-muted-foreground hover:text-foreground",
               )}
             >
               <span className={cn(
                 "flex h-7 w-7 items-center justify-center rounded-lg transition-all duration-200 shrink-0",
-                active ? "bg-white/20 text-white" : "bg-muted/60 text-muted-foreground",
+                active 
+                  ? (isML ? "bg-black/10 text-slate-900" : "bg-white/20 text-white") 
+                  : "bg-muted/60 text-muted-foreground",
               )}>
                 <Icon className="h-3.5 w-3.5" />
               </span>
