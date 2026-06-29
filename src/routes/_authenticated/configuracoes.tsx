@@ -54,13 +54,6 @@ import {
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/_authenticated/configuracoes")({
-  beforeLoad: async () => {
-    const { supabase } = await import("@/integrations/supabase/client");
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    if (!user) throw redirect({ to: "/auth" });
-  },
   component: ConfiguracoesPage,
 });
 
