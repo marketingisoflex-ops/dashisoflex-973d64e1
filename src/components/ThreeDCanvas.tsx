@@ -804,13 +804,6 @@ export function ThreeDCanvas() {
       group.add(createTubeOrProfile(corners[0][0], lowerY, corners[0][1], corners[1][0], lowerY, corners[1][1]));
       group.add(createTubeOrProfile(corners[2][0], lowerY, corners[2][1], corners[3][0], lowerY, corners[3][1]));
 
-      // 2. Shelves & Lanes & Bins
-      for (let i = 0; i < shelfCount; i++) {
-        const shelfH = baseOffset + 0.35 + (i * (h - baseOffset - 0.55)) / (shelfCount - 1 || 1);
-        const shelfGroup = new THREE.Group();
-        shelfGroup.position.set(0, shelfH, 0);
-        shelfGroup.rotation.x = angleRad;
-
       // 2. Shelves & Lanes & Bins (Optimized)
       const frameGeo = new THREE.BoxGeometry(w, 0.03, 0.03);
       const sideFrameGeo = new THREE.BoxGeometry(0.03, 0.03, d);
