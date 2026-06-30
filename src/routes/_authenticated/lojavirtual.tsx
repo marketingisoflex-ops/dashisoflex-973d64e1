@@ -439,7 +439,7 @@ function LojaVirtualPage() {
 
   const handleExportExcel = () => {
     if (processedTableData.length === 0) { toast.error("Nenhum dado para exportar."); return; }
-    const headers = ["Data", "Dia", "Unidades", "Faturamento (R$)", "Pedidos", "Ticket (R$)", "Invest. Ads (R$)", "Vendas Ads (R$)", "ROAS", "ACOS (%)", "Produto", "Observações"];
+    const headers = ["Data", "Dia", "Unidades", "Vendas (R$)", "Pedidos", "Ticket (R$)", "Invest. Ads (R$)", "Vendas Ads (R$)", "ROAS", "ACOS (%)", "Produto", "Observações"];
     const rows = processedTableData.map((row: any) => [
       row.ref_date, row.dia_semana || row.label || "", row.unidades, row.vendas_totais.toFixed(2),
       row.pedidos, row.ticket_medio.toFixed(2), (row.invest_ads || 0).toFixed(2), (row.vendas_ads || 0).toFixed(2),
@@ -472,7 +472,7 @@ function LojaVirtualPage() {
               <Badge className="bg-white/20 hover:bg-white/30 text-white border-white/30 font-bold text-[10px]">PAINEL BI</Badge>
             </h1>
             <p className="text-sm text-blue-100 font-medium">
-              Acompanhamento de conversão, faturamento, pedidos e métricas da loja própria Isoflex.
+              Acompanhamento de conversão, vendas, pedidos e métricas da loja própria Isoflex.
             </p>
           </div>
         </div>
@@ -562,7 +562,7 @@ function LojaVirtualPage() {
         </div>
       ) : (
         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
-          <LvKpiCard label={`FATURAMENTO (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`} value={fmtBRL(metrics.totalRevenue)} trend={`${metrics.revenueGrowth.toFixed(1)}% vs anterior`} isPositive={metrics.isRevenuePositive} icon={Coins} />
+          <LvKpiCard label={`VENDAS (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`} value={fmtBRL(metrics.totalRevenue)} trend={`${metrics.revenueGrowth.toFixed(1)}% vs anterior`} isPositive={metrics.isRevenuePositive} icon={Coins} />
           <LvKpiCard label={`PEDIDOS (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`} value={String(metrics.totalOrders)} trend={`${metrics.ordersGrowth.toFixed(1)}% vs anterior`} isPositive={metrics.isOrdersPositive} icon={ShoppingCart} />
           <LvKpiCard label={`CONVERSÃO (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`} value={`${metrics.avgConversion.toFixed(2)}%`} trend={`${metrics.conversionGrowth >= 0 ? "+" : ""}${metrics.conversionGrowth.toFixed(2)}pp vs anterior`} isPositive={metrics.isConversionPositive} icon={Sparkles} />
           <LvKpiCard label={`VISITAS (${analysisMode === "weekly" ? "SEMANA" : "PERÍODO"})`} value={String(metrics.totalVisits)} trend={`${metrics.visitsGrowth.toFixed(1)}% vs anterior`} isPositive={metrics.isVisitsPositive} icon={Activity} />
@@ -607,104 +607,98 @@ function LojaVirtualPage() {
       )}
 
       {/* ── WEEKLY SMART CONVERSION ANALYSIS ─────────────────────── */}
-      {!isLoading && weeklyData.length > 0 && (
+      {!isLoading && filteredDailyData.length > 0 && (
         <Card className="border border-blue-200/70 shadow-sm rounded-2xl overflow-hidden bg-gradient-to-br from-blue-50/60 to-white">
           <CardHeader className="pb-3 border-b border-blue-100/60 flex flex-row flex-wrap items-center justify-between gap-4 bg-gradient-to-r from-blue-100/40 to-white">
             <div>
               <CardTitle className="text-sm font-black text-slate-800 flex items-center gap-2">
                 <Sparkles className="h-4.5 w-4.5 text-blue-500" />
-                Análise Semanal Inteligente — Conversão
+                Análise Diária Inteligente — Conversão
               </CardTitle>
               <CardDescription className="text-[11px] font-semibold text-slate-500">
-                Breakdown automático semana a semana com métricas de conversão e tendências da Loja Virtual
+                Acompanhamento detalhado dia a dia com metas, conversão e observações da Loja Virtual
               </CardDescription>
             </div>
           </CardHeader>
           <CardContent className="p-4">
             <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-              {weeklyData.map((week: any, idx: number) => {
-                const conv = week.rate_conv || 0;
-                const prevWeek = idx > 0 ? weeklyData[idx - 1] : null;
-                const prevConv = prevWeek ? (prevWeek as any).rate_conv || 0 : 0;
-                const convDelta = prevWeek ? conv - prevConv : 0;
+              {filteredDailyData.map((day: any, idx: number) => {
+                const conv = day.visitas > 0 ? (day.pedidos / day.visitas) * 100 : 0;
+                const prevDay = idx > 0 ? filteredDailyData[idx - 1] : null;
+                const prevConv = prevDay ? (prevDay.visitas > 0 ? (prevDay.pedidos / prevDay.visitas) * 100 : 0) : 0;
+                const convDelta = prevDay ? conv - prevConv : 0;
                 const isConvUp = convDelta >= 0;
-                const metaPct = week.meta_dia > 0 ? (week.vendas_totais / week.meta_dia) * 100 : 0;
-                const roas = week.invest_ads > 0 ? week.vendas_ads / week.invest_ads : 0;
+                const metaPct = day.meta_dia > 0 ? (day.vendas_totais / day.meta_dia) * 100 : 0;
+                const roas = day.invest_ads > 0 ? day.vendas_ads / day.invest_ads : 0;
 
-                // Find best conversion day within this week
-                const weekStart = week.ref_date;
-                const [wy, wm, wd] = weekStart.split("-").map(Number);
-                const weekStartDate = new Date(wy, wm - 1, wd);
-                const weekEndDate = new Date(weekStartDate);
-                weekEndDate.setDate(weekStartDate.getDate() + 6);
-                const weekEndIso = `${weekEndDate.getFullYear()}-${String(weekEndDate.getMonth() + 1).padStart(2, "0")}-${String(weekEndDate.getDate()).padStart(2, "0")}`;
-
-                const daysInWeek = filteredDailyData.filter(
-                  (d) => d.ref_date >= weekStart && d.ref_date <= weekEndIso
-                );
-                const bestDay = daysInWeek.length > 0
-                  ? daysInWeek.reduce((best, d) => {
-                      const dConv = d.visitas > 0 ? (d.pedidos / d.visitas) * 100 : 0;
-                      const bConv = best.visitas > 0 ? (best.pedidos / best.visitas) * 100 : 0;
-                      return dConv > bConv ? d : best;
-                    })
-                  : null;
-                const bestDayConv = bestDay && bestDay.visitas > 0 ? (bestDay.pedidos / bestDay.visitas) * 100 : 0;
+                const [wy, wm, wd] = day.ref_date.split("-").map(Number);
+                const dateObj = new Date(wy, wm - 1, wd);
+                const weekday = dateObj.toLocaleDateString("pt-BR", { weekday: "long" }).split("-")[0];
+                const label = `${String(wd).padStart(2, "0")}/${String(wm).padStart(2, "0")} (${weekday.toUpperCase()})`;
 
                 return (
-                  <div key={week.id} className="border border-blue-200/60 rounded-xl p-4 bg-white hover:shadow-md transition-all duration-200">
-                    {/* Week Header */}
-                    <div className="flex items-center justify-between mb-3">
-                      <span className="text-xs font-black text-slate-700">
-                        {week.label || `Semana ${idx + 1}`}
-                      </span>
-                      <Badge className={`text-[9px] font-bold border-none ${metaPct >= 100 ? "bg-emerald-100 text-emerald-700" : metaPct >= 80 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
-                        {metaPct.toFixed(0)}% META
-                      </Badge>
-                    </div>
-
-                    {/* Conversion Highlight */}
-                    <div className="flex items-center gap-3 mb-3 p-2.5 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200/40">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/20 text-blue-600">
-                        <Sparkles className="h-5 w-5" />
+                  <div key={day.id} className="border border-blue-200/60 rounded-xl p-4 bg-white hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                    <div>
+                      {/* Day Header */}
+                      <div className="flex items-center justify-between mb-3">
+                        <span className="text-xs font-black text-slate-700">
+                          {label}
+                        </span>
+                        <Badge className={`text-[9px] font-bold border-none ${metaPct >= 100 ? "bg-emerald-100 text-emerald-700" : metaPct >= 80 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                          {metaPct.toFixed(0)}% META
+                        </Badge>
                       </div>
-                      <div>
-                        <span className="text-[9px] font-bold text-blue-600 tracking-wider block">TAXA DE CONVERSÃO</span>
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-black text-slate-800">{conv.toFixed(2)}%</span>
-                          {prevWeek && (
-                            <span className={`text-[10px] font-bold flex items-center gap-0.5 ${isConvUp ? "text-emerald-600" : "text-rose-600"}`}>
-                              {isConvUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                              {convDelta >= 0 ? "+" : ""}{convDelta.toFixed(2)}pp
-                            </span>
-                          )}
+
+                      {/* Conversion Highlight */}
+                      <div className="flex items-center gap-3 mb-3 p-2.5 rounded-lg bg-gradient-to-r from-blue-50 to-indigo-50/50 border border-blue-200/40">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-600/20 text-blue-600">
+                          <Sparkles className="h-5 w-5" />
+                        </div>
+                        <div>
+                          <span className="text-[9px] font-bold text-blue-600 tracking-wider block">TAXA DE CONVERSÃO</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-black text-slate-800">{conv.toFixed(2)}%</span>
+                            {prevDay && (
+                              <span className={`text-[10px] font-bold flex items-center gap-0.5 ${isConvUp ? "text-emerald-600" : "text-rose-600"}`}>
+                                {isConvUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                                {convDelta >= 0 ? "+" : ""}{convDelta.toFixed(2)}pp
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Metrics Grid */}
+                      <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                          <span className="text-[8px] font-bold text-slate-400 block tracking-wider">VENDAS</span>
+                          <span className="text-xs font-black text-slate-800">{fmtBRL(day.vendas_totais)}</span>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                          <span className="text-[8px] font-bold text-slate-400 block tracking-wider">PEDIDOS</span>
+                          <span className="text-xs font-black text-slate-800">{day.pedidos}</span>
+                        </div>
+                        <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                          <span className="text-[8px] font-bold text-slate-400 block tracking-wider">VISITAS</span>
+                          <span className="text-xs font-black text-slate-800">{day.visitas}</span>
                         </div>
                       </div>
                     </div>
 
-                    {/* Metrics Grid */}
-                    <div className="grid grid-cols-3 gap-2 mb-3">
-                      <div className="text-center p-2 rounded-lg bg-slate-50/60">
-                        <span className="text-[8px] font-bold text-slate-400 block tracking-wider">FATURAMENTO</span>
-                        <span className="text-xs font-black text-slate-800">{fmtBRL(week.vendas_totais)}</span>
+                    <div className="border-t border-slate-100 pt-2.5 mt-1 space-y-1.5 text-[10px]">
+                      <div className="flex justify-between">
+                        <span className="font-bold text-slate-500">ROAS: <span className={`${roas >= 4 ? "text-emerald-600" : "text-amber-600"}`}>{roas.toFixed(2)}</span></span>
+                        <span className="text-slate-400 font-medium">Unidades: {day.unidades}</span>
                       </div>
-                      <div className="text-center p-2 rounded-lg bg-slate-50/60">
-                        <span className="text-[8px] font-bold text-slate-400 block tracking-wider">PEDIDOS</span>
-                        <span className="text-xs font-black text-slate-800">{week.pedidos}</span>
-                      </div>
-                      <div className="text-center p-2 rounded-lg bg-slate-50/60">
-                        <span className="text-[8px] font-bold text-slate-400 block tracking-wider">VISITAS</span>
-                        <span className="text-xs font-black text-slate-800">{week.visitas}</span>
-                      </div>
-                    </div>
-
-                    {/* ROAS + Best Day */}
-                    <div className="flex items-center justify-between text-[10px]">
-                      <span className="font-bold text-slate-500">ROAS: <span className={`${roas >= 5 ? "text-emerald-600" : "text-amber-600"}`}>{roas.toFixed(2)}</span></span>
-                      {bestDay && (
-                        <span className="font-bold text-slate-500 truncate ml-2">
-                          Melhor dia: <span className="text-blue-600">{bestDay.ref_date.slice(5)} ({bestDayConv.toFixed(1)}%)</span>
-                        </span>
+                      {day.produto_mais_vendido && (
+                        <div className="text-slate-600 truncate">
+                          <strong className="text-slate-700">Top Prod:</strong> {day.produto_mais_vendido}
+                        </div>
+                      )}
+                      {day.observacoes && (
+                        <div className="text-slate-500 italic line-clamp-2 bg-slate-50 p-1.5 rounded-md border border-slate-100">
+                          "{day.observacoes}"
+                        </div>
                       )}
                     </div>
                   </div>
@@ -712,11 +706,15 @@ function LojaVirtualPage() {
               })}
             </div>
 
-            {/* Weekly Conversion Chart */}
+            {/* Daily Conversion Chart */}
             <div className="mt-4 border-t border-blue-100 pt-4">
-              <span className="text-xs font-black text-slate-700 block mb-2">📊 Tendência de Conversão Semanal</span>
+              <span className="text-xs font-black text-slate-700 block mb-2">📊 Tendência de Conversão Diária</span>
               <ResponsiveContainer width="100%" height={160}>
-                <AreaChart data={weeklyData}>
+                <AreaChart data={filteredDailyData.map(d => ({
+                  ...d,
+                  rate_conv: d.visitas > 0 ? (d.pedidos / d.visitas) * 100 : 0,
+                  label: d.ref_date.split("-").reverse().slice(0, 2).join("/")
+                }))}>
                   <defs>
                     <linearGradient id="convGradientLV" x1="0" y1="0" x2="0" y2="1">
                       <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
@@ -727,7 +725,6 @@ function LojaVirtualPage() {
                   <XAxis
                     dataKey="label"
                     tick={{ fontSize: 9, fill: "#64748b" }}
-                    tickFormatter={(v) => v.split(" ")[1] || v}
                   />
                   <YAxis tick={{ fontSize: 9, fill: "#64748b" }} tickFormatter={(v) => `${v.toFixed(1)}%`} />
                   <Tooltip formatter={(value: number) => `${value.toFixed(2)}%`} contentStyle={{ borderRadius: "12px", border: "1px solid #bfdbfe", fontSize: "11px" }} />
@@ -753,8 +750,8 @@ function LojaVirtualPage() {
             <>
               <Card className="border border-blue-100 shadow-sm">
                 <CardHeader className="pb-3 border-b border-blue-50">
-                  <CardTitle className="text-sm font-black text-slate-800">Faturamento Diário vs Meta</CardTitle>
-                  <CardDescription className="text-xs text-slate-500">Barras de faturamento real comparadas à linha de meta diária</CardDescription>
+                  <CardTitle className="text-sm font-black text-slate-800">Vendas Diárias vs Meta</CardTitle>
+                  <CardDescription className="text-xs text-slate-500">Barras de vendas reais comparadas à linha de meta diária</CardDescription>
                 </CardHeader>
                 <CardContent className="p-4">
                   <ResponsiveContainer width="100%" height={260}>
@@ -764,7 +761,7 @@ function LojaVirtualPage() {
                       <YAxis tick={{ fontSize: 10, fill: "#64748b" }} tickFormatter={(v) => `R$${(v / 1000).toFixed(0)}k`} />
                       <Tooltip formatter={(value: number) => fmtBRL(value)} contentStyle={{ borderRadius: "12px", border: "1px solid #bfdbfe", fontSize: "11px" }} />
                       <Legend wrapperStyle={{ fontSize: "11px" }} />
-                      <Bar dataKey="vendas_totais" name="Faturamento" fill="#2563eb" radius={[4, 4, 0, 0]} />
+                      <Bar dataKey="vendas_totais" name="Vendas" fill="#2563eb" radius={[4, 4, 0, 0]} />
                       <Line type="monotone" dataKey="meta_dia" name="Meta" stroke="#f97316" strokeWidth={2} dot={false} strokeDasharray="5 5" />
                     </BarChart>
                   </ResponsiveContainer>
@@ -827,7 +824,7 @@ function LojaVirtualPage() {
 
               <Card className="border border-blue-100 shadow-sm">
                 <CardHeader className="pb-3 border-b border-blue-50">
-                  <CardTitle className="text-sm font-black text-slate-800">Faturamento Acumulado</CardTitle>
+                  <CardTitle className="text-sm font-black text-slate-800">Vendas Acumuladas</CardTitle>
                   <CardDescription className="text-xs text-slate-500">Crescimento cumulativo no período filtrado</CardDescription>
                 </CardHeader>
                 <CardContent className="p-4">
@@ -941,7 +938,7 @@ function LojaVirtualPage() {
                   <TableRow className="bg-blue-50 hover:bg-blue-100/60">
                     {[
                       { key: "ref_date", label: "Data" }, { key: "dia_semana", label: "Dia" },
-                      { key: "unidades", label: "Unidades" }, { key: "vendas_totais", label: "Faturamento" },
+                      { key: "unidades", label: "Unidades" }, { key: "vendas_totais", label: "Vendas" },
                       { key: "pedidos", label: "Pedidos" }, { key: "visitas", label: "Visitas" },
                       { key: "rate_conv", label: "Conversão" }, { key: "ticket_medio", label: "Ticket Médio" },
                       { key: "invest_ads", label: "Invest. Ads" }, { key: "vendas_ads", label: "Vendas Ads" },
@@ -1017,7 +1014,7 @@ function LojaVirtualPage() {
                   <Input type="number" step="0.01" placeholder="Ex: 8000.00" value={formData.meta_dia} onChange={(e) => setFormData({ ...formData, meta_dia: e.target.value })} className="h-9" />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-xs font-semibold text-slate-700">Faturamento (R$)</Label>
+                  <Label className="text-xs font-semibold text-slate-700">Vendas (R$)</Label>
                   <Input type="number" step="0.01" placeholder="Ex: 7500.00" value={formData.vendas_totais} onChange={(e) => setFormData({ ...formData, vendas_totais: e.target.value })} className="h-9" />
                 </div>
                 <div className="space-y-1">

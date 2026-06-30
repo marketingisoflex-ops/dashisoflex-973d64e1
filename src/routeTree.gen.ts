@@ -20,13 +20,13 @@ import { Route as AuthenticatedRelatorioRouteImport } from './routes/_authentica
 import { Route as AuthenticatedMetasRouteImport } from './routes/_authenticated/metas'
 import { Route as AuthenticatedMercadolivreRouteImport } from './routes/_authenticated/mercadolivre'
 import { Route as AuthenticatedMarketingRouteImport } from './routes/_authenticated/marketing'
+import { Route as AuthenticatedLojavirtualRouteImport } from './routes/_authenticated/lojavirtual'
 import { Route as AuthenticatedLancamentoRouteImport } from './routes/_authenticated/lancamento'
 import { Route as AuthenticatedHistoricoRouteImport } from './routes/_authenticated/historico'
 import { Route as AuthenticatedFinanceiroRouteImport } from './routes/_authenticated/financeiro'
 import { Route as AuthenticatedEngenhariaRouteImport } from './routes/_authenticated/engenharia'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
 import { Route as AuthenticatedConfiguracoesRouteImport } from './routes/_authenticated/configuracoes'
-import { Route as AuthenticatedLojaVirtualRouteImport } from './routes/_authenticated/lojavirtual'
 import { Route as AuthenticatedComercialRouteImport } from './routes/_authenticated/comercial'
 
 const AuthRoute = AuthRouteImport.update({
@@ -85,6 +85,12 @@ const AuthenticatedMarketingRoute = AuthenticatedMarketingRouteImport.update({
   path: '/marketing',
   getParentRoute: () => AuthenticatedRoute,
 } as any)
+const AuthenticatedLojavirtualRoute =
+  AuthenticatedLojavirtualRouteImport.update({
+    id: '/lojavirtual',
+    path: '/lojavirtual',
+    getParentRoute: () => AuthenticatedRoute,
+  } as any)
 const AuthenticatedLancamentoRoute = AuthenticatedLancamentoRouteImport.update({
   id: '/lancamento',
   path: '/lancamento',
@@ -116,11 +122,6 @@ const AuthenticatedConfiguracoesRoute =
     path: '/configuracoes',
     getParentRoute: () => AuthenticatedRoute,
   } as any)
-const AuthenticatedLojaVirtualRoute = AuthenticatedLojaVirtualRouteImport.update({
-  id: '/lojavirtual',
-  path: '/lojavirtual',
-  getParentRoute: () => AuthenticatedRoute,
-} as any)
 const AuthenticatedComercialRoute = AuthenticatedComercialRouteImport.update({
   id: '/comercial',
   path: '/comercial',
@@ -132,12 +133,12 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRouteWithChildren
   '/comercial': typeof AuthenticatedComercialRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/lojavirtual': typeof AuthenticatedLojaVirtualRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/engenharia': typeof AuthenticatedEngenhariaRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/lancamento': typeof AuthenticatedLancamentoRoute
+  '/lojavirtual': typeof AuthenticatedLojavirtualRoute
   '/marketing': typeof AuthenticatedMarketingRoute
   '/mercadolivre': typeof AuthenticatedMercadolivreRoute
   '/metas': typeof AuthenticatedMetasRoute
@@ -152,12 +153,12 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRouteWithChildren
   '/comercial': typeof AuthenticatedComercialRoute
   '/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/lojavirtual': typeof AuthenticatedLojaVirtualRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
   '/engenharia': typeof AuthenticatedEngenhariaRoute
   '/financeiro': typeof AuthenticatedFinanceiroRoute
   '/historico': typeof AuthenticatedHistoricoRoute
   '/lancamento': typeof AuthenticatedLancamentoRoute
+  '/lojavirtual': typeof AuthenticatedLojavirtualRoute
   '/marketing': typeof AuthenticatedMarketingRoute
   '/mercadolivre': typeof AuthenticatedMercadolivreRoute
   '/metas': typeof AuthenticatedMetasRoute
@@ -174,12 +175,12 @@ export interface FileRoutesById {
   '/auth': typeof AuthRouteWithChildren
   '/_authenticated/comercial': typeof AuthenticatedComercialRoute
   '/_authenticated/configuracoes': typeof AuthenticatedConfiguracoesRoute
-  '/_authenticated/lojavirtual': typeof AuthenticatedLojaVirtualRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
   '/_authenticated/engenharia': typeof AuthenticatedEngenhariaRoute
   '/_authenticated/financeiro': typeof AuthenticatedFinanceiroRoute
   '/_authenticated/historico': typeof AuthenticatedHistoricoRoute
   '/_authenticated/lancamento': typeof AuthenticatedLancamentoRoute
+  '/_authenticated/lojavirtual': typeof AuthenticatedLojavirtualRoute
   '/_authenticated/marketing': typeof AuthenticatedMarketingRoute
   '/_authenticated/mercadolivre': typeof AuthenticatedMercadolivreRoute
   '/_authenticated/metas': typeof AuthenticatedMetasRoute
@@ -197,11 +198,11 @@ export interface FileRouteTypes {
     | '/comercial'
     | '/configuracoes'
     | '/dashboard'
-    | '/lojavirtual'
     | '/engenharia'
     | '/financeiro'
     | '/historico'
     | '/lancamento'
+    | '/lojavirtual'
     | '/marketing'
     | '/mercadolivre'
     | '/metas'
@@ -217,11 +218,11 @@ export interface FileRouteTypes {
     | '/comercial'
     | '/configuracoes'
     | '/dashboard'
-    | '/lojavirtual'
     | '/engenharia'
     | '/financeiro'
     | '/historico'
     | '/lancamento'
+    | '/lojavirtual'
     | '/marketing'
     | '/mercadolivre'
     | '/metas'
@@ -238,11 +239,11 @@ export interface FileRouteTypes {
     | '/_authenticated/comercial'
     | '/_authenticated/configuracoes'
     | '/_authenticated/dashboard'
-    | '/_authenticated/lojavirtual'
     | '/_authenticated/engenharia'
     | '/_authenticated/financeiro'
     | '/_authenticated/historico'
     | '/_authenticated/lancamento'
+    | '/_authenticated/lojavirtual'
     | '/_authenticated/marketing'
     | '/_authenticated/mercadolivre'
     | '/_authenticated/metas'
@@ -338,6 +339,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedMarketingRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
+    '/_authenticated/lojavirtual': {
+      id: '/_authenticated/lojavirtual'
+      path: '/lojavirtual'
+      fullPath: '/lojavirtual'
+      preLoaderRoute: typeof AuthenticatedLojavirtualRouteImport
+      parentRoute: typeof AuthenticatedRoute
+    }
     '/_authenticated/lancamento': {
       id: '/_authenticated/lancamento'
       path: '/lancamento'
@@ -387,13 +395,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedComercialRouteImport
       parentRoute: typeof AuthenticatedRoute
     }
-    '/_authenticated/lojavirtual': {
-      id: '/_authenticated/lojavirtual'
-      path: '/lojavirtual'
-      fullPath: '/lojavirtual'
-      preLoaderRoute: typeof AuthenticatedLojaVirtualRouteImport
-      parentRoute: typeof AuthenticatedRoute
-    }
   }
 }
 
@@ -405,7 +406,7 @@ interface AuthenticatedRouteChildren {
   AuthenticatedFinanceiroRoute: typeof AuthenticatedFinanceiroRoute
   AuthenticatedHistoricoRoute: typeof AuthenticatedHistoricoRoute
   AuthenticatedLancamentoRoute: typeof AuthenticatedLancamentoRoute
-  AuthenticatedLojaVirtualRoute: typeof AuthenticatedLojaVirtualRoute
+  AuthenticatedLojavirtualRoute: typeof AuthenticatedLojavirtualRoute
   AuthenticatedMarketingRoute: typeof AuthenticatedMarketingRoute
   AuthenticatedMercadolivreRoute: typeof AuthenticatedMercadolivreRoute
   AuthenticatedMetasRoute: typeof AuthenticatedMetasRoute
@@ -422,7 +423,7 @@ const AuthenticatedRouteChildren: AuthenticatedRouteChildren = {
   AuthenticatedFinanceiroRoute: AuthenticatedFinanceiroRoute,
   AuthenticatedHistoricoRoute: AuthenticatedHistoricoRoute,
   AuthenticatedLancamentoRoute: AuthenticatedLancamentoRoute,
-  AuthenticatedLojaVirtualRoute: AuthenticatedLojaVirtualRoute,
+  AuthenticatedLojavirtualRoute: AuthenticatedLojavirtualRoute,
   AuthenticatedMarketingRoute: AuthenticatedMarketingRoute,
   AuthenticatedMercadolivreRoute: AuthenticatedMercadolivreRoute,
   AuthenticatedMetasRoute: AuthenticatedMetasRoute,

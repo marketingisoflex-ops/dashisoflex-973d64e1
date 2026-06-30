@@ -1229,10 +1229,12 @@ function MercadoLivrePage() {
                 return (
                   <div
                     key={index}
-                    className={`flex items-center gap-3 p-3 rounded-full border text-xs font-bold ${alertClass}`}
+                    className={`p-3 rounded-lg border text-xs flex gap-3 ${alertClass}`}
                   >
-                    <Icon className="h-4 w-4 shrink-0" />
-                    <span>{alert.text}</span>
+                    <Icon className="h-4 w-4 mt-0.5 shrink-0" />
+                    <div>
+                      <p className="font-semibold">{alert.text}</p>
+                    </div>
                   </div>
                 );
               })}
@@ -1241,105 +1243,99 @@ function MercadoLivrePage() {
         )}
 
         {/* Tab Controls for Charts and Tables */}
-        {/* ── WEEKLY SMART CONVERSION ANALYSIS ─────────────────────── */}
-        {!isLoading && weeklyData.length > 0 && (
+        {/* ── DAILY SMART CONVERSION ANALYSIS ─────────────────────── */}
+        {!isLoading && filteredDailyData.length > 0 && (
           <Card className="border border-yellow-200/70 shadow-sm rounded-2xl overflow-hidden bg-gradient-to-br from-yellow-50/60 to-white">
             <CardHeader className="pb-3 border-b border-yellow-100/60 flex flex-row flex-wrap items-center justify-between gap-4 bg-gradient-to-r from-yellow-100/40 to-white">
               <div>
                 <CardTitle className="text-sm font-black text-slate-800 flex items-center gap-2">
                   <Sparkles className="h-4.5 w-4.5 text-yellow-500" />
-                  Análise Semanal Inteligente — Conversão
+                  Análise Diária Inteligente — Conversão
                 </CardTitle>
                 <CardDescription className="text-[11px] font-semibold text-slate-500">
-                  Breakdown automático semana a semana com métricas de conversão e tendências
+                  Acompanhamento detalhado dia a dia com metas, conversão e observações do Mercado Livre
                 </CardDescription>
               </div>
             </CardHeader>
             <CardContent className="p-4">
               <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
-                {weeklyData.map((week: any, idx: number) => {
-                  const conv = week.rate_conv || 0;
-                  const prevWeek = idx > 0 ? weeklyData[idx - 1] : null;
-                  const prevConv = prevWeek ? (prevWeek as any).rate_conv || 0 : 0;
-                  const convDelta = prevWeek ? conv - prevConv : 0;
+                {filteredDailyData.map((day: any, idx: number) => {
+                  const conv = day.visitas > 0 ? (day.pedidos / day.visitas) * 100 : 0;
+                  const prevDay = idx > 0 ? filteredDailyData[idx - 1] : null;
+                  const prevConv = prevDay ? (prevDay.visitas > 0 ? (prevDay.pedidos / prevDay.visitas) * 100 : 0) : 0;
+                  const convDelta = prevDay ? conv - prevConv : 0;
                   const isConvUp = convDelta >= 0;
-                  const metaPct = week.meta_dia > 0 ? (week.vendas_totais / week.meta_dia) * 100 : 0;
-                  const roas = week.invest_ads > 0 ? week.vendas_ads / week.invest_ads : 0;
+                  const metaPct = day.meta_dia > 0 ? (day.vendas_totais / day.meta_dia) * 100 : 0;
+                  const roas = day.invest_ads > 0 ? day.vendas_ads / day.invest_ads : 0;
 
-                  // Find best conversion day within this week
-                  const weekStart = week.ref_date;
-                  const [wy, wm, wd] = weekStart.split("-").map(Number);
-                  const weekStartDate = new Date(wy, wm - 1, wd);
-                  const weekEndDate = new Date(weekStartDate);
-                  weekEndDate.setDate(weekStartDate.getDate() + 6);
-                  const weekEndIso = `${weekEndDate.getFullYear()}-${String(weekEndDate.getMonth() + 1).padStart(2, "0")}-${String(weekEndDate.getDate()).padStart(2, "0")}`;
-
-                  const daysInWeek = filteredDailyData.filter(
-                    (d) => d.ref_date >= weekStart && d.ref_date <= weekEndIso
-                  );
-                  const bestDay = daysInWeek.length > 0
-                    ? daysInWeek.reduce((best, d) => {
-                        const dConv = d.visitas > 0 ? (d.pedidos / d.visitas) * 100 : 0;
-                        const bConv = best.visitas > 0 ? (best.pedidos / best.visitas) * 100 : 0;
-                        return dConv > bConv ? d : best;
-                      })
-                    : null;
-                  const bestDayConv = bestDay && bestDay.visitas > 0 ? (bestDay.pedidos / bestDay.visitas) * 100 : 0;
+                  const [wy, wm, wd] = day.ref_date.split("-").map(Number);
+                  const dateObj = new Date(wy, wm - 1, wd);
+                  const weekday = dateObj.toLocaleDateString("pt-BR", { weekday: "long" }).split("-")[0];
+                  const label = `${String(wd).padStart(2, "0")}/${String(wm).padStart(2, "0")} (${weekday.toUpperCase()})`;
 
                   return (
-                    <div key={week.id} className="border border-yellow-200/60 rounded-xl p-4 bg-white hover:shadow-md transition-all duration-200">
-                      {/* Week Header */}
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xs font-black text-slate-700">
-                          {week.label || `Semana ${idx + 1}`}
-                        </span>
-                        <Badge className={`text-[9px] font-bold border-none ${metaPct >= 100 ? "bg-emerald-100 text-emerald-700" : metaPct >= 80 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
-                          {metaPct.toFixed(0)}% META
-                        </Badge>
-                      </div>
-
-                      {/* Conversion Highlight */}
-                      <div className="flex items-center gap-3 mb-3 p-2.5 rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50/50 border border-yellow-200/40">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400/20 text-yellow-600">
-                          <Sparkles className="h-5 w-5" />
+                    <div key={day.id} className="border border-yellow-200/60 rounded-xl p-4 bg-white hover:shadow-md transition-all duration-200 flex flex-col justify-between">
+                      <div>
+                        {/* Day Header */}
+                        <div className="flex items-center justify-between mb-3">
+                          <span className="text-xs font-black text-slate-700">
+                            {label}
+                          </span>
+                          <Badge className={`text-[9px] font-bold border-none ${metaPct >= 100 ? "bg-emerald-100 text-emerald-700" : metaPct >= 80 ? "bg-amber-100 text-amber-700" : "bg-red-100 text-red-700"}`}>
+                            {metaPct.toFixed(0)}% META
+                          </Badge>
                         </div>
-                        <div>
-                          <span className="text-[9px] font-bold text-yellow-600 tracking-wider block">TAXA DE CONVERSÃO</span>
-                          <div className="flex items-center gap-2">
-                            <span className="text-lg font-black text-slate-800">{conv.toFixed(2)}%</span>
-                            {prevWeek && (
-                              <span className={`text-[10px] font-bold flex items-center gap-0.5 ${isConvUp ? "text-emerald-600" : "text-rose-600"}`}>
-                                {isConvUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
-                                {convDelta >= 0 ? "+" : ""}{convDelta.toFixed(2)}pp
-                              </span>
-                            )}
+
+                        {/* Conversion Highlight */}
+                        <div className="flex items-center gap-3 mb-3 p-2.5 rounded-lg bg-gradient-to-r from-yellow-50 to-amber-50/50 border border-yellow-200/40">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-yellow-400/20 text-yellow-600">
+                            <Sparkles className="h-5 w-5" />
+                          </div>
+                          <div>
+                            <span className="text-[9px] font-bold text-yellow-600 tracking-wider block">TAXA DE CONVERSÃO</span>
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-black text-slate-800">{conv.toFixed(2)}%</span>
+                              {prevDay && (
+                                <span className={`text-[10px] font-bold flex items-center gap-0.5 ${isConvUp ? "text-emerald-600" : "text-rose-600"}`}>
+                                  {isConvUp ? <TrendingUp className="h-3 w-3" /> : <TrendingDown className="h-3 w-3" />}
+                                  {convDelta >= 0 ? "+" : ""}{convDelta.toFixed(2)}pp
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Metrics Grid */}
+                        <div className="grid grid-cols-3 gap-2 mb-3">
+                          <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                            <span className="text-[8px] font-bold text-slate-400 block tracking-wider">VENDAS</span>
+                            <span className="text-xs font-black text-slate-800">{fmtBRL(day.vendas_totais)}</span>
+                          </div>
+                          <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                            <span className="text-[8px] font-bold text-slate-400 block tracking-wider">PEDIDOS</span>
+                            <span className="text-xs font-black text-slate-800">{day.pedidos}</span>
+                          </div>
+                          <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                            <span className="text-[8px] font-bold text-slate-400 block tracking-wider">VISITAS</span>
+                            <span className="text-xs font-black text-slate-800">{day.visitas}</span>
                           </div>
                         </div>
                       </div>
 
-                      {/* Metrics Grid */}
-                      <div className="grid grid-cols-3 gap-2 mb-3">
-                        <div className="text-center p-2 rounded-lg bg-slate-50/60">
-                          <span className="text-[8px] font-bold text-slate-400 block tracking-wider">FATURAMENTO</span>
-                          <span className="text-xs font-black text-slate-800">{fmtBRL(week.vendas_totais)}</span>
+                      <div className="border-t border-slate-100 pt-2.5 mt-1 space-y-1.5 text-[10px]">
+                        <div className="flex justify-between">
+                          <span className="font-bold text-slate-500">ROAS Ads: <span className={`${roas >= 4 ? "text-emerald-600" : "text-amber-600"}`}>{roas.toFixed(2)}</span></span>
+                          <span className="text-slate-400 font-medium">Unidades: {day.unidades}</span>
                         </div>
-                        <div className="text-center p-2 rounded-lg bg-slate-50/60">
-                          <span className="text-[8px] font-bold text-slate-400 block tracking-wider">PEDIDOS</span>
-                          <span className="text-xs font-black text-slate-800">{week.pedidos}</span>
-                        </div>
-                        <div className="text-center p-2 rounded-lg bg-slate-50/60">
-                          <span className="text-[8px] font-bold text-slate-400 block tracking-wider">VISITAS</span>
-                          <span className="text-xs font-black text-slate-800">{week.visitas}</span>
-                        </div>
-                      </div>
-
-                      {/* ROAS + Best Day */}
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="font-bold text-slate-500">ROAS: <span className={`${roas >= 5 ? "text-emerald-600" : "text-amber-600"}`}>{roas.toFixed(2)}</span></span>
-                        {bestDay && (
-                          <span className="font-bold text-slate-500 truncate ml-2">
-                            Melhor dia: <span className="text-yellow-600">{bestDay.ref_date.slice(5)} ({bestDayConv.toFixed(1)}%)</span>
-                          </span>
+                        {day.produto_mais_vendido && (
+                          <div className="text-slate-600 truncate">
+                            <strong className="text-slate-700">Top Prod:</strong> {day.produto_mais_vendido}
+                          </div>
+                        )}
+                        {day.observacoes && (
+                          <div className="text-slate-500 italic line-clamp-2 bg-slate-50 p-1.5 rounded-md border border-slate-100">
+                            "{day.observacoes}"
+                          </div>
                         )}
                       </div>
                     </div>
@@ -1347,11 +1343,11 @@ function MercadoLivrePage() {
                 })}
               </div>
 
-              {/* Weekly Conversion Chart */}
+              {/* Daily Conversion Chart */}
               <div className="mt-4 border-t border-yellow-100 pt-4">
-                <span className="text-xs font-black text-slate-700 block mb-2">📊 Tendência de Conversão Semanal</span>
+                <span className="text-xs font-black text-slate-700 block mb-2">📊 Tendência de Conversão Diária</span>
                 <ResponsiveContainer width="100%" height={160}>
-                  <AreaChart data={weeklyData}>
+                  <AreaChart data={filteredDailyData}>
                     <defs>
                       <linearGradient id="convGradientML" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="5%" stopColor="#eab308" stopOpacity={0.3} />
@@ -1360,13 +1356,21 @@ function MercadoLivrePage() {
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="#fef3c7" />
                     <XAxis
-                      dataKey="label"
+                      dataKey="ref_date"
                       tick={{ fontSize: 9, fill: "#64748b" }}
-                      tickFormatter={(v) => v.split(" ")[1] || v}
+                      tickFormatter={(v) => {
+                        const [y, m, d] = v.split("-").map(Number);
+                        return `${String(d).padStart(2, "0")}/${String(m).padStart(2, "0")}`;
+                      }}
                     />
                     <YAxis tick={{ fontSize: 9, fill: "#64748b" }} tickFormatter={(v) => `${v.toFixed(1)}%`} />
-                    <Tooltip formatter={(value: number) => `${value.toFixed(2)}%`} contentStyle={{ borderRadius: "12px", border: "1px solid #fde68a", fontSize: "11px" }} />
-                    <Area type="monotone" dataKey="rate_conv" name="Conversão (%)" stroke="#eab308" fill="url(#convGradientML)" strokeWidth={2.5} dot={{ fill: "#eab308", r: 4, strokeWidth: 2, stroke: "#fff" }} />
+                    <Tooltip formatter={(value: number, name: string, props: any) => {
+                      const visits = props.payload.visitas || 0;
+                      const orders = props.payload.pedidos || 0;
+                      const rate = visits > 0 ? (orders / visits) * 100 : 0;
+                      return [`${rate.toFixed(2)}%`, "Taxa de Conversão"];
+                    }} contentStyle={{ borderRadius: "12px", border: "1px solid #fde68a", fontSize: "11px" }} />
+                    <Area type="monotone" dataKey={(d) => d.visitas > 0 ? (d.pedidos / d.visitas) * 100 : 0} name="Conversão (%)" stroke="#eab308" fill="url(#convGradientML)" strokeWidth={2.5} dot={{ fill: "#eab308", r: 4, strokeWidth: 2, stroke: "#fff" }} />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -1403,11 +1407,11 @@ function MercadoLivrePage() {
               <>
                 {/* Upper Charts */}
                 <div className="grid gap-6 md:grid-cols-2">
-                  {/* Chart 1: Faturamento por Período */}
+                  {/* Chart 1: Vendas por Período */}
                   <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-bold text-slate-800">
-                        1. Faturamento por Período (R$)
+                        1. Vendas por Período (R$)
                       </CardTitle>
                       <CardDescription className="text-xs">
                         Valores {analysisMode === "daily" ? "diários" : "semanais"} totais atingidos no Mercado Livre
@@ -1432,7 +1436,7 @@ function MercadoLivrePage() {
                           <YAxis tickFormatter={(v) => `R$ ${v}`} stroke="#64748b" fontSize={10} />
                           <Tooltip formatter={(v) => fmtBRL(Number(v))} labelFormatter={(lbl) => `Data/Período: ${lbl}`} />
                           <Legend wrapperStyle={{ fontSize: 10 }} />
-                          <Bar dataKey="vendas_totais" name="Faturamento Atingido" fill="#3483fa" radius={[4, 4, 0, 0]} />
+                          <Bar dataKey="vendas_totais" name="Vendas Atingidas" fill="#3483fa" radius={[4, 4, 0, 0]} />
                           <Bar dataKey="meta_dia" name="Meta Período" fill="#e2e8f0" radius={[4, 4, 0, 0]} />
                         </BarChart>
                       </ResponsiveContainer>
@@ -1564,14 +1568,14 @@ function MercadoLivrePage() {
                     </CardContent>
                   </Card>
 
-                  {/* Chart 5: Evolução do Faturamento (Linha Acumulada) */}
+                  {/* Chart 5: Evolução das Vendas (Linha Acumulada) */}
                   <Card className="border-slate-200 shadow-sm hover:shadow-md transition-shadow">
                     <CardHeader className="pb-2">
                       <CardTitle className="text-sm font-bold text-slate-800">
                         5. Evolução Acumulada
                       </CardTitle>
                       <CardDescription className="text-xs">
-                        Faturamento crescendo acumulativamente ao longo do período
+                        Vendas crescendo acumulativamente ao longo do período
                       </CardDescription>
                     </CardHeader>
                     <CardContent className="h-72 pt-4">
@@ -1590,7 +1594,7 @@ function MercadoLivrePage() {
                           <Area
                             type="monotone"
                             dataKey="faturamento_acumulado"
-                            name="Faturamento Acumulado"
+                            name="Vendas Acumuladas"
                             stroke="#3483fa"
                             strokeWidth={2.5}
                             fill="url(#gradientRev)"
