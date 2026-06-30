@@ -1306,7 +1306,7 @@ function MercadoLivrePage() {
                         </div>
 
                         {/* Metrics Grid */}
-                        <div className="grid grid-cols-3 gap-2 mb-3">
+                        <div className="grid grid-cols-4 gap-2 mb-3">
                           <div className="text-center p-2 rounded-lg bg-slate-50/60">
                             <span className="text-[8px] font-bold text-slate-400 block tracking-wider">VENDAS</span>
                             <span className="text-xs font-black text-slate-800">{fmtBRL(day.vendas_totais)}</span>
@@ -1318,6 +1318,12 @@ function MercadoLivrePage() {
                           <div className="text-center p-2 rounded-lg bg-slate-50/60">
                             <span className="text-[8px] font-bold text-slate-400 block tracking-wider">VISITAS</span>
                             <span className="text-xs font-black text-slate-800">{day.visitas}</span>
+                          </div>
+                          <div className="text-center p-2 rounded-lg bg-slate-50/60">
+                            <span className="text-[8px] font-bold text-slate-400 block tracking-wider">TICKET MÉD.</span>
+                            <span className="text-xs font-black text-slate-800">
+                              {fmtBRL(day.pedidos > 0 ? day.vendas_totais / day.pedidos : 0)}
+                            </span>
                           </div>
                         </div>
                       </div>
